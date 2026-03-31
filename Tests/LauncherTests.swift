@@ -1,8 +1,8 @@
 import XCTest
-@testable import WorkCheckpoint
+@testable import Entule
 
 final class LauncherTests: XCTestCase {
-    func testDryRunReturnsSuccesses() async {
+    func testDryRunReturnsSuccessesAndSkippedDuplicates() async {
         let launcher = NSWorkspaceLauncher()
         let items = [
             SessionItem(kind: .url, displayName: "Example", value: "example.com", source: "manual", isSelected: true),
@@ -10,7 +10,10 @@ final class LauncherTests: XCTestCase {
         ]
 
         let report = await launcher.launch(items: items, shortcutName: nil, dryRun: true)
-        XCTAssertEqual(report.successes.count, 1)
-        XCTAssertTrue(report.failures.isEmpty)
+        XCTAssertEqual(report.attemptedCount, 1)
+        XCTAssertEqual(report.succeededCount, 1)
+        XCTAssertEqual(report.skippedCount, 1)
+        XCTAssertEqual(report.failedCount, 0)
+        XCTAssertTrue(report.summaryLine.contains("Attempted 1"))
     }
 }

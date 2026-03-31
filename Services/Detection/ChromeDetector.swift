@@ -3,39 +3,57 @@ import Foundation
 final class ChromeDetector: DetectorProtocol {
     let name = "ChromeDetector"
 
-    func detect() async -> [SessionItem] {
+    func detect() async -> DetectorOutput {
         let script = #"""
         tell application "Google Chrome"
-            if not running then return ""
-            set outputLines to {}
+            if not running then return "__NOT_RUNNING__"
+            set rs to ASCII character 30
+            set fs to ASCII character 31
+            set outputRows to {}
             repeat with w in windows
                 try
                     set t to active tab of w
-                    set end of outputLines to ((title of t) & "|||" & (URL of t))
+                    set rowText to ((title of t) & fs & (URL of t))
+                    set end of outputRows to rowText
                 end try
             end repeat
-            return outputLines as string
+            if (count of outputRows) is 0 then return ""
+            set AppleScript's text item delimiters to rs
+            set outText to outputRows as text
+            set AppleScript's text item delimiters to ""
+            return outText
         end tell
         """#
 
-        guard let output = AppleScriptRunner.run(script: script), !output.isEmpty else {
-            return []
+        let execution = AppleScriptRunner.run(script: script)
+        if !execution.succeeded {
+            return DetectorOutput(
+                detectorName: name,
+                items: [],
+                warnings: ["Chrome detection failed: \(execution.errorOutput.isEmpty ? "unknown osascript error" : execution.errorOutput)"],
+                failed: true
+            )
         }
 
-        let rows = output.split(separator: ",").map { String($0) }
-        return rows.compactMap { row in
-            let components = row.components(separatedBy: "|||")
-            guard components.count >= 2 else { return nil }
-            let title = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
-            let url = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let normalized = URLNormalizer.normalize(url) else { return nil }
+        if execution.output == "__NOT_RUNNING__" {
+            return DetectorOutput(detectorName: name, items: [], warnings: ["Google Chrome not running"], failed: false)
+        }
+
+        var warnings: [String] = []
+        let items = DetectionParsing.parseBrowserRows(execution.output).compactMap { row -> SessionItem? in
+            guard let normalized = URLNormalizer.normalize(row.url) else {
+                warnings.append("Chrome row skipped due to invalid URL")
+                return nil
+            }
             return SessionItem(
                 kind: .url,
-                displayName: title.isEmpty ? normalized : title,
+                displayName: row.title.isEmpty ? normalized : row.title,
                 value: normalized,
                 source: "detected-chrome",
                 isSelected: true
             )
         }
+
+        return DetectorOutput(detectorName: name, items: items, warnings: warnings, failed: false)
     }
 }

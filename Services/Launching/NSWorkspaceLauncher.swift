@@ -18,7 +18,11 @@ final class NSWorkspaceLauncher: Launcher {
 
     func launch(items: [SessionItem], shortcutName: String?, dryRun: Bool = false) async -> LaunchReport {
         var report = LaunchReport()
-        let normalized = dedupe(items: items).filter(\.isSelected)
+        let dedupeResult = dedupe(items: items)
+        let normalized = dedupeResult.items.filter(\.isSelected)
+
+        report.attemptedItems = normalized
+        report.skipped.append(contentsOf: dedupeResult.skipped)
 
         if let shortcutName, !shortcutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if dryRun {
@@ -61,20 +65,20 @@ final class NSWorkspaceLauncher: Launcher {
 
     private func launchApp(_ item: SessionItem, report: inout LaunchReport) {
         guard let appPath = item.appPath ?? optionalPath(from: item.value) else {
-            report.failures.append((item, "Missing app path"))
+            report.failures.append(LaunchIssue(item: item, reason: "Missing app path"))
             return
         }
 
         let appURL = URL(fileURLWithPath: appPath)
         guard FileManager.default.fileExists(atPath: appURL.path) else {
-            report.failures.append((item, "App missing at \(appURL.path)"))
+            report.failures.append(LaunchIssue(item: item, reason: "App missing at \(appURL.path)"))
             return
         }
 
         let config = NSWorkspace.OpenConfiguration()
         workspace.openApplication(at: appURL, configuration: config) { _, error in
             if let error {
-                self.logger.error("App launch failed: \(item.displayName) :: \(error.localizedDescription)")
+                self.logger.error("App launch callback error: \(item.displayName) :: \(error.localizedDescription)")
             }
         }
         report.successes.append(item)
@@ -83,7 +87,7 @@ final class NSWorkspaceLauncher: Launcher {
     private func launchPath(_ item: SessionItem, report: inout LaunchReport) {
         let path = item.value
         guard FileManager.default.fileExists(atPath: path) else {
-            report.failures.append((item, "Path missing: \(path)"))
+            report.failures.append(LaunchIssue(item: item, reason: "Path missing: \(path)"))
             return
         }
 
@@ -91,13 +95,13 @@ final class NSWorkspaceLauncher: Launcher {
         if opened {
             report.successes.append(item)
         } else {
-            report.failures.append((item, "NSWorkspace.open returned false"))
+            report.failures.append(LaunchIssue(item: item, reason: "NSWorkspace.open returned false"))
         }
     }
 
     private func launchURL(_ item: SessionItem, report: inout LaunchReport) {
         guard let normalized = URLNormalizer.normalize(item.value), let url = URL(string: normalized) else {
-            report.failures.append((item, "Invalid URL: \(item.value)"))
+            report.failures.append(LaunchIssue(item: item, reason: "Invalid URL: \(item.value)"))
             return
         }
 
@@ -105,13 +109,14 @@ final class NSWorkspaceLauncher: Launcher {
         if opened {
             report.successes.append(item)
         } else {
-            report.failures.append((item, "NSWorkspace.open returned false"))
+            report.failures.append(LaunchIssue(item: item, reason: "NSWorkspace.open returned false"))
         }
     }
 
-    private func dedupe(items: [SessionItem]) -> [SessionItem] {
+    private func dedupe(items: [SessionItem]) -> (items: [SessionItem], skipped: [LaunchIssue]) {
         var seen = Set<String>()
         var deduped: [SessionItem] = []
+        var skipped: [LaunchIssue] = []
 
         for item in items {
             let key: String
@@ -126,12 +131,16 @@ final class NSWorkspaceLauncher: Launcher {
                 key = "url::\(URLNormalizer.normalize(item.value) ?? item.value)"
             }
 
-            if seen.contains(key) { continue }
+            if seen.contains(key) {
+                skipped.append(LaunchIssue(item: item, reason: "Duplicate item"))
+                continue
+            }
+
             seen.insert(key)
             deduped.append(item)
         }
 
-        return deduped
+        return (deduped, skipped)
     }
 
     private func optionalPath(from value: String) -> String? {

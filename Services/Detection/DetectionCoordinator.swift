@@ -24,29 +24,33 @@ final class DetectionCoordinator {
     func detectAll() async -> DetectionResult {
         let start = Date()
         var merged: [SessionItem] = []
-        var errors: [String] = []
+        var allWarnings: [String] = []
+        var detectorOutputs: [DetectorOutput] = []
 
-        await withTaskGroup(of: (String, [SessionItem]?).self) { group in
+        await withTaskGroup(of: DetectorOutput.self) { group in
             for detector in detectors {
                 group.addTask {
-                    let items = await detector.detect()
-                    return (detector.name, items)
+                    await detector.detect()
                 }
             }
 
-            for await (name, items) in group {
-                if let items {
-                    merged.append(contentsOf: items)
-                } else {
-                    errors.append("\(name) returned no result")
-                }
+            for await output in group {
+                merged.append(contentsOf: output.items)
+                allWarnings.append(contentsOf: output.warnings)
+                detectorOutputs.append(output)
             }
         }
 
         let deduped = dedupe(merged)
-        logger.info("Detection finished: \(deduped.count) items")
+        logger.info("Detection finished: \(deduped.count) items, \(allWarnings.count) warnings")
 
-        return DetectionResult(items: deduped, errors: errors, startedAt: start, completedAt: Date())
+        return DetectionResult(
+            items: deduped,
+            warnings: allWarnings,
+            detectorOutputs: detectorOutputs.sorted(by: { $0.detectorName < $1.detectorName }),
+            startedAt: start,
+            completedAt: Date()
+        )
     }
 
     private func dedupe(_ items: [SessionItem]) -> [SessionItem] {

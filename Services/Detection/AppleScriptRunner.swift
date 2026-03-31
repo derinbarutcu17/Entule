@@ -1,7 +1,17 @@
 import Foundation
 
+struct AppleScriptExecutionResult {
+    var output: String
+    var errorOutput: String
+    var exitCode: Int32
+
+    var succeeded: Bool {
+        exitCode == 0
+    }
+}
+
 enum AppleScriptRunner {
-    static func run(script: String) -> String? {
+    static func run(script: String) -> AppleScriptExecutionResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", script]
@@ -14,17 +24,21 @@ enum AppleScriptRunner {
         do {
             try process.run()
         } catch {
-            return nil
+            return AppleScriptExecutionResult(
+                output: "",
+                errorOutput: error.localizedDescription,
+                exitCode: -1
+            )
         }
 
         process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            return nil
-        }
 
-        let data = outPipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        _ = errPipe.fileHandleForReading.readDataToEndOfFile()
-        return output
+        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        return AppleScriptExecutionResult(
+            output: String(data: outData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            errorOutput: String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            exitCode: process.terminationStatus
+        )
     }
 }

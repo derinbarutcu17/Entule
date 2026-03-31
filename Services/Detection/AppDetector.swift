@@ -4,10 +4,9 @@ import Foundation
 final class AppDetector: DetectorProtocol {
     let name = "AppDetector"
 
-    func detect() async -> [SessionItem] {
+    func detect() async -> DetectorOutput {
         let runningApps = NSWorkspace.shared.runningApplications
-
-        return runningApps.compactMap { app in
+        let items: [SessionItem] = runningApps.compactMap { app -> SessionItem? in
             guard let bundleID = app.bundleIdentifier,
                   let appURL = app.bundleURL,
                   app.activationPolicy == .regular else {
@@ -29,5 +28,7 @@ final class AppDetector: DetectorProtocol {
                 isSelected: true
             )
         }
+
+        return DetectorOutput(detectorName: name, items: items, warnings: [], failed: false)
     }
 }

@@ -2,16 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "WorkCheckpoint",
+    name: "Entule",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "WorkCheckpoint", targets: ["WorkCheckpoint"])
+        .executable(name: "Entule", targets: ["Entule"])
     ],
     targets: [
         .executableTarget(
-            name: "WorkCheckpoint",
+            name: "Entule",
             path: ".",
             exclude: [
                 "Tests",
@@ -20,8 +20,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "WorkCheckpointTests",
-            dependencies: ["WorkCheckpoint"],
+            name: "EntuleTests",
+            dependencies: ["Entule"],
             path: "Tests"
         )
     ]

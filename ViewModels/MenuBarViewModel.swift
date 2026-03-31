@@ -4,7 +4,7 @@ import Foundation
 final class MenuBarViewModel: ObservableObject {
     @Published private(set) var presets: [Preset] = []
     @Published private(set) var lastSnapshot: SessionSnapshot?
-    @Published var infoMessage: String = "Ready"
+    @Published var statusLine: String = "Ready"
     @Published var showPresetsWindow = false
     @Published var showSettingsWindow = false
     @Published var showSaveSheet = false
@@ -29,23 +29,23 @@ final class MenuBarViewModel: ObservableObject {
 
     func openPresets() {
         showPresetsWindow = true
-        infoMessage = "Open Presets"
+        statusLine = "Managing presets"
     }
 
     func openSettings() {
         showSettingsWindow = true
-        infoMessage = "Open Settings"
+        statusLine = "Viewing settings"
     }
 
     func beginSaveSession() {
         showSaveSheet = true
-        infoMessage = "Save Current Session"
+        statusLine = "Detecting current session"
     }
 
     func beginResumeSession() {
         guard canResumeLastSession else { return }
         showResumeSheet = true
-        infoMessage = "Resume Last Session"
+        statusLine = "Preparing resume"
     }
 
     func savePreset(_ preset: Preset) {
@@ -58,27 +58,36 @@ final class MenuBarViewModel: ObservableObject {
         appState.model = updated
         appState.save()
         reload()
+        statusLine = "Preset saved"
     }
 
     func deletePreset(id: UUID) {
         appState.model.presets.removeAll(where: { $0.id == id })
         appState.save()
         reload()
+        statusLine = "Preset deleted"
     }
 
     func saveSnapshot(_ snapshot: SessionSnapshot) {
         appState.model.lastSnapshot = snapshot
         appState.save()
         reload()
+        statusLine = "Session snapshot saved (\(snapshot.items.count) items)"
     }
 
-    func launchPreset(_ preset: Preset) async {
+    func launchPreset(_ preset: Preset) async -> LaunchReport {
         let report = await appState.environment.launcher.launch(
             items: preset.items,
             shortcutName: preset.shortcutName,
             dryRun: false
         )
-        infoMessage = "Launched \(report.successes.count) items, \(report.failures.count) failed"
+
+        let shortcutStatus = report.shortcutResult.map {
+            $0.succeeded ? "shortcut ok" : "shortcut failed"
+        } ?? "no shortcut"
+
+        statusLine = "Preset \(preset.name): \(report.summaryLine), \(shortcutStatus)"
+        return report
     }
 
     func resumeLastSnapshot() async -> LaunchReport? {
@@ -88,7 +97,12 @@ final class MenuBarViewModel: ObservableObject {
             shortcutName: snapshot.shortcutName,
             dryRun: false
         )
-        infoMessage = "Resumed \(report.successes.count) items"
+
+        let shortcutStatus = report.shortcutResult.map {
+            $0.succeeded ? "shortcut ok" : "shortcut failed"
+        } ?? "no shortcut"
+
+        statusLine = "Resume: \(report.summaryLine), \(shortcutStatus)"
         return report
     }
 

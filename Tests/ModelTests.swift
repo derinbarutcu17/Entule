@@ -1,5 +1,5 @@
 import XCTest
-@testable import WorkCheckpoint
+@testable import Entule
 
 final class ModelTests: XCTestCase {
     func testSessionItemCodableRoundTrip() throws {

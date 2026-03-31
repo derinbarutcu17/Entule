@@ -1,6 +1,6 @@
-# WorkCheckpoint
+# Entule
 
-WorkCheckpoint is a macOS menu bar utility that saves and reopens a lightweight work session.
+Entule is a macOS menu bar utility that saves and reopens a lightweight work session.
 
 ## What It Does (v1)
 
@@ -39,7 +39,7 @@ Manual-only for v1:
 ## Privacy
 
 - State is stored locally in:
-  - `~/Library/Application Support/WorkCheckpoint/state.json`
+  - `~/Library/Application Support/Entule/state.json`
 - No remote storage is used in v1.
 
 ## Known Limitations

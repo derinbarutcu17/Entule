@@ -6,7 +6,7 @@ enum FilePaths {
             throw AppError.persistenceFailed("Could not resolve Application Support directory")
         }
 
-        let directory = base.appendingPathComponent("WorkCheckpoint", isDirectory: true)
+        let directory = base.appendingPathComponent("Entule", isDirectory: true)
         if !fileManager.fileExists(atPath: directory.path) {
             try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         }

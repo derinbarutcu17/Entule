@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct WorkCheckpointApp: App {
+struct EntuleApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var menuBarViewModel: MenuBarViewModel
 
@@ -12,7 +12,7 @@ struct WorkCheckpointApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("WorkCheckpoint", systemImage: "checklist") {
+        MenuBarExtra("Entule", systemImage: "checklist") {
             MenuBarRootView(viewModel: menuBarViewModel)
         }
         .menuBarExtraStyle(.menu)

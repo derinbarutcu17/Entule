@@ -27,7 +27,7 @@ struct MenuBarRootView: View {
 
             Divider()
 
-            Text(viewModel.infoMessage)
+            Text(viewModel.statusLine)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 

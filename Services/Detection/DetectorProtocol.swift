@@ -2,5 +2,5 @@ import Foundation
 
 protocol DetectorProtocol {
     var name: String { get }
-    func detect() async -> [SessionItem]
+    func detect() async -> DetectorOutput
 }

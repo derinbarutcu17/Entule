@@ -7,6 +7,7 @@ struct SaveSessionSheet: View {
 
     @State private var manualURL = ""
     @State private var manualPath = ""
+    @State private var confirmSaveWithZeroItems = false
 
     private var groupedItems: [SessionItemKind: [SessionItem]] {
         Dictionary(grouping: viewModel.items, by: { $0.kind })
@@ -21,13 +22,28 @@ struct SaveSessionSheet: View {
                 Button("Select All") { viewModel.selectAll() }
                 Button("Deselect All") { viewModel.deselectAll() }
                 Spacer()
+                Text("Selected: \(viewModel.selectedCount)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if viewModel.isDetecting { ProgressView() }
             }
 
-            if !viewModel.detectionErrors.isEmpty {
-                Text(viewModel.detectionErrors.joined(separator: "\n"))
+            if !viewModel.detectionWarnings.isEmpty {
+                GroupBox("Detection Warnings") {
+                    VStack(alignment: .leading) {
+                        ForEach(viewModel.detectionWarnings, id: \.self) { warning in
+                            Text("• \(warning)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            if let inputError = viewModel.inputErrorMessage {
+                Text(inputError)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.red)
             }
 
             List {
@@ -50,20 +66,23 @@ struct SaveSessionSheet: View {
                 HStack {
                     TextField("URL", text: $manualURL)
                     Button("Add URL") {
-                        viewModel.addManualURL(raw: manualURL)
-                        manualURL = ""
+                        if viewModel.addManualURL(raw: manualURL) {
+                            manualURL = ""
+                        }
                     }
                 }
 
                 HStack {
                     TextField("Path", text: $manualPath)
                     Button("Add File") {
-                        viewModel.addManualPath(path: manualPath, isFolder: false)
-                        manualPath = ""
+                        if viewModel.addManualPath(path: manualPath, isFolder: false) {
+                            manualPath = ""
+                        }
                     }
                     Button("Add Folder") {
-                        viewModel.addManualPath(path: manualPath, isFolder: true)
-                        manualPath = ""
+                        if viewModel.addManualPath(path: manualPath, isFolder: true) {
+                            manualPath = ""
+                        }
                     }
                 }
             }
@@ -75,8 +94,7 @@ struct SaveSessionSheet: View {
                 Button("Cancel") { dismiss() }
                 Spacer()
                 Button("Save Snapshot") {
-                    menuBarViewModel.saveSnapshot(viewModel.toSnapshot())
-                    dismiss()
+                    saveSnapshotWithChecks()
                 }
             }
         }
@@ -87,6 +105,29 @@ struct SaveSessionSheet: View {
             viewModel.loadDetectionResult(result)
             viewModel.isDetecting = false
         }
+        .onChange(of: manualURL) { _ in viewModel.clearInputError() }
+        .onChange(of: manualPath) { _ in viewModel.clearInputError() }
+        .alert("Save snapshot with zero selected items?", isPresented: $confirmSaveWithZeroItems) {
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                persistAndClose()
+            }
+        } message: {
+            Text("This will replace the last snapshot with an empty item list.")
+        }
+    }
+
+    private func saveSnapshotWithChecks() {
+        if viewModel.selectedCount == 0 {
+            confirmSaveWithZeroItems = true
+        } else {
+            persistAndClose()
+        }
+    }
+
+    private func persistAndClose() {
+        menuBarViewModel.saveSnapshot(viewModel.toSnapshot())
+        dismiss()
     }
 
     private func binding(for id: UUID) -> Binding<SessionItem>? {

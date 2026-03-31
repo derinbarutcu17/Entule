@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>WorkCheckpoint</string>
+    <string>Entule</string>
     <key>CFBundleIdentifier</key>
-    <string>com.derin.workcheckpoint</string>
+    <string>com.derin.entule</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>

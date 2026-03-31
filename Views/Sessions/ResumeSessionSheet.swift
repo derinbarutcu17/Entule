@@ -21,7 +21,7 @@ struct ResumeSessionSheet: View {
                 }
             }
 
-            Text("Items to reopen: \(viewModel.snapshot.items.count)")
+            Text("Items in snapshot: \(viewModel.snapshot.items.count)")
 
             List(viewModel.snapshot.items) { item in
                 HStack {
@@ -37,9 +37,33 @@ struct ResumeSessionSheet: View {
             }
 
             if let report = viewModel.lastReport {
-                Text("Resumed \(report.successes.count), Failed \(report.failures.count)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                GroupBox("Resume Result") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(report.summaryLine)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        if let shortcutResult = report.shortcutResult {
+                            let status = shortcutResult.succeeded ? "succeeded" : "failed"
+                            Text("Shortcut \"\(shortcutResult.name)\" \(status)")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if !report.failures.isEmpty {
+                            ForEach(report.failures.prefix(5), id: \.item.id) { failure in
+                                Text("• \(failure.item.displayName): \(failure.reason)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if report.failures.count > 5 {
+                                Text("…and \(report.failures.count - 5) more failures")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
             }
 
             HStack {
