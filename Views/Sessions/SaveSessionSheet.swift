@@ -6,7 +6,6 @@ struct SaveSessionSheet: View {
     @ObservedObject var menuBarViewModel: MenuBarViewModel
 
     @State private var manualURL = ""
-    @State private var manualPath = ""
     @State private var confirmSaveWithZeroItems = false
 
     private var groupedItems: [SessionItemKind: [SessionItem]] {
@@ -22,19 +21,32 @@ struct SaveSessionSheet: View {
                 Button("Select All") { viewModel.selectAll() }
                 Button("Deselect All") { viewModel.deselectAll() }
                 Spacer()
-                Text("Selected: \(viewModel.selectedCount)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 if viewModel.isDetecting { ProgressView() }
+            }
+
+            Text(summaryLine)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if !viewModel.detectorStatusLines.isEmpty {
+                GroupBox("Detector Status") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(viewModel.detectorStatusLines, id: \.self) { line in
+                            Text("• \(line)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
 
             if !viewModel.detectionWarnings.isEmpty {
                 GroupBox("Detection Warnings") {
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 4) {
                         ForEach(viewModel.detectionWarnings, id: \.self) { warning in
                             Text("• \(warning)")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.orange)
                         }
                     }
                 }
@@ -46,14 +58,25 @@ struct SaveSessionSheet: View {
                     .foregroundStyle(.red)
             }
 
-            List {
-                ForEach(SessionItemKind.allCases, id: \.self) { kind in
-                    if let indexList = groupedItems[kind], !indexList.isEmpty {
-                        Section(kind.rawValue.uppercased()) {
-                            ForEach(indexList) { sectionItem in
-                                if let binding = binding(for: sectionItem.id) {
-                                    SessionItemRow(item: binding) {
-                                        viewModel.removeItem(sectionItem)
+            if viewModel.items.isEmpty && !viewModel.isDetecting {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("No Session Items Found")
+                        .font(.headline)
+                    Text("Add URLs or use Add App/File/Folder to include items manually.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 12)
+            } else {
+                List {
+                    ForEach(SessionItemKind.allCases, id: \.self) { kind in
+                        if let indexList = groupedItems[kind], !indexList.isEmpty {
+                            Section(kind.rawValue.uppercased()) {
+                                ForEach(indexList) { sectionItem in
+                                    if let binding = binding(for: sectionItem.id) {
+                                        SessionItemRow(item: binding) {
+                                            viewModel.removeItem(sectionItem)
+                                        }
                                     }
                                 }
                             }
@@ -64,24 +87,17 @@ struct SaveSessionSheet: View {
 
             GroupBox("Manual Add") {
                 HStack {
-                    TextField("URL", text: $manualURL)
-                    Button("Add URL") {
-                        if viewModel.addManualURL(raw: manualURL) {
-                            manualURL = ""
-                        }
-                    }
+                    Button("Add App…") { viewModel.addManualAppsFromPicker() }
+                    Button("Add File…") { viewModel.addManualFilesFromPicker() }
+                    Button("Add Folder…") { viewModel.addManualFoldersFromPicker() }
+                    Spacer()
                 }
 
                 HStack {
-                    TextField("Path", text: $manualPath)
-                    Button("Add File") {
-                        if viewModel.addManualPath(path: manualPath, isFolder: false) {
-                            manualPath = ""
-                        }
-                    }
-                    Button("Add Folder") {
-                        if viewModel.addManualPath(path: manualPath, isFolder: true) {
-                            manualPath = ""
+                    TextField("Add URL", text: $manualURL)
+                    Button("Add URL") {
+                        if viewModel.addManualURL(raw: manualURL) {
+                            manualURL = ""
                         }
                     }
                 }
@@ -93,9 +109,10 @@ struct SaveSessionSheet: View {
             HStack {
                 Button("Cancel") { dismiss() }
                 Spacer()
-                Button("Save Snapshot") {
+                Button(viewModel.isDetecting ? "Detecting…" : "Save Snapshot") {
                     saveSnapshotWithChecks()
                 }
+                .disabled(viewModel.isDetecting)
             }
         }
         .padding()
@@ -106,19 +123,22 @@ struct SaveSessionSheet: View {
             viewModel.isDetecting = false
         }
         .onChange(of: manualURL) { _ in viewModel.clearInputError() }
-        .onChange(of: manualPath) { _ in viewModel.clearInputError() }
-        .alert("Save snapshot with zero selected items?", isPresented: $confirmSaveWithZeroItems) {
+        .alert("Save empty snapshot?", isPresented: $confirmSaveWithZeroItems) {
             Button("Cancel", role: .cancel) {}
             Button("Save") {
                 persistAndClose()
             }
         } message: {
-            Text("This will replace the last snapshot with an empty item list.")
+            Text("No items are selected. Entule will save a checkpoint with only your note and shortcut.")
         }
     }
 
+    private var summaryLine: String {
+        "Detected \(viewModel.detectedCount) items from \(viewModel.detectedSourceCount) sources. Selected \(viewModel.selectedCount)."
+    }
+
     private func saveSnapshotWithChecks() {
-        if viewModel.selectedCount == 0 {
+        if viewModel.shouldConfirmEmptySelection() {
             confirmSaveWithZeroItems = true
         } else {
             persistAndClose()

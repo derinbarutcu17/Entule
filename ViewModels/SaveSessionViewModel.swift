@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 @MainActor
@@ -6,16 +7,32 @@ final class SaveSessionViewModel: ObservableObject {
     @Published var shortcutName: String = ""
     @Published var items: [SessionItem] = []
     @Published var isDetecting = false
+    @Published var detectionNotes: [String] = []
     @Published var detectionWarnings: [String] = []
+    @Published var detectorStatusLines: [String] = []
     @Published var inputErrorMessage: String?
 
     func loadDetectionResult(_ result: DetectionResult) {
         items = result.items
+        detectionNotes = result.notes
         detectionWarnings = result.warnings
+        detectorStatusLines = result.detectorOutputs.map(detectorStatusLine(for:))
     }
 
     var selectedCount: Int {
         items.filter(\.isSelected).count
+    }
+
+    var detectedCount: Int {
+        items.count
+    }
+
+    var detectedSourceCount: Int {
+        Set(items.map(\.source)).count
+    }
+
+    func shouldConfirmEmptySelection() -> Bool {
+        selectedCount == 0
     }
 
     func selectAll() {
@@ -95,6 +112,44 @@ final class SaveSessionViewModel: ObservableObject {
         return true
     }
 
+    func addManualAppsFromPicker() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.application]
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+
+        guard panel.runModal() == .OK else { return }
+
+        for url in panel.urls {
+            _ = addManualApp(
+                name: BundleAppResolver.displayName(forAppPath: url.path),
+                bundleIDOrPath: BundleAppResolver.bundleIdentifier(forAppPath: url.path) ?? url.path,
+                appPath: url.path
+            )
+        }
+    }
+
+    func addManualFilesFromPicker() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+
+        guard panel.runModal() == .OK else { return }
+        panel.urls.forEach { _ = addManualPath(path: $0.path, isFolder: false) }
+    }
+
+    func addManualFoldersFromPicker() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+
+        guard panel.runModal() == .OK else { return }
+        panel.urls.forEach { _ = addManualPath(path: $0.path, isFolder: true) }
+    }
+
     func toSnapshot() -> SessionSnapshot {
         SessionSnapshot(
             note: note,
@@ -102,5 +157,21 @@ final class SaveSessionViewModel: ObservableObject {
             shortcutName: shortcutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : shortcutName,
             createdAt: Date()
         )
+    }
+
+    private func detectorStatusLine(for output: DetectorOutput) -> String {
+        let title = output.detectorName.replacingOccurrences(of: "Detector", with: "")
+        switch output.status {
+        case .success:
+            return output.items.isEmpty ? "\(title): no items" : "\(title): \(output.items.count) items"
+        case .notRunning:
+            return "\(title): not running"
+        case .unavailable:
+            return output.notes.first ?? "\(title): unavailable"
+        case .warning:
+            return "\(title): \(output.warnings.count) warning(s)"
+        case .failed:
+            return "\(title): failed"
+        }
     }
 }

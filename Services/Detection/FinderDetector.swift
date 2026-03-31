@@ -25,16 +25,34 @@ final class FinderDetector: DetectorProtocol {
 
         let execution = AppleScriptRunner.run(script: script)
         if !execution.succeeded {
+            let reason = execution.errorOutput.isEmpty ? "unknown osascript error" : execution.errorOutput
+            if isPermissionIssue(reason) {
+                return DetectorOutput(
+                    detectorName: name,
+                    items: [],
+                    notes: ["Finder automation permission missing"],
+                    warnings: [],
+                    status: .unavailable
+                )
+            }
+
             return DetectorOutput(
                 detectorName: name,
                 items: [],
-                warnings: ["Finder detection failed: \(execution.errorOutput.isEmpty ? "unknown osascript error" : execution.errorOutput)"],
-                failed: true
+                notes: [],
+                warnings: ["Finder detection failed: \(reason)"],
+                status: .failed
             )
         }
 
         if execution.output == "__NOT_RUNNING__" {
-            return DetectorOutput(detectorName: name, items: [], warnings: ["Finder not running"], failed: false)
+            return DetectorOutput(
+                detectorName: name,
+                items: [],
+                notes: ["Finder not running"],
+                warnings: [],
+                status: .notRunning
+            )
         }
 
         let paths = DetectionParsing.parseFinderPaths(execution.output)
@@ -48,6 +66,17 @@ final class FinderDetector: DetectorProtocol {
             )
         }
 
-        return DetectorOutput(detectorName: name, items: items, warnings: [], failed: false)
+        return DetectorOutput(
+            detectorName: name,
+            items: items,
+            notes: [],
+            warnings: [],
+            status: .success
+        )
+    }
+
+    private func isPermissionIssue(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return lower.contains("not authorized") || lower.contains("-1743") || lower.contains("automation")
     }
 }

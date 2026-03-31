@@ -21,6 +21,13 @@ final class JSONStore: Store {
     func loadState() throws -> AppStateModel {
         let stateURL = try FilePaths.stateFileURL(fileManager: fileManager)
         guard fileManager.fileExists(atPath: stateURL.path) else {
+            do {
+                if let migrated = try migrateLegacyStateIfAvailable() {
+                    return migrated
+                }
+            } catch {
+                logger.error("Legacy state migration failed: \(error.localizedDescription)")
+            }
             let initial = AppStateModel.empty
             try saveState(initial)
             return initial
@@ -61,5 +68,22 @@ final class JSONStore: Store {
         transform(&state)
         try saveState(state)
         return state
+    }
+
+    private func migrateLegacyStateIfAvailable() throws -> AppStateModel? {
+        let legacyURL = try FilePaths.legacyStateFileURL(fileManager: fileManager)
+        guard fileManager.fileExists(atPath: legacyURL.path) else {
+            return nil
+        }
+
+        let legacyData = try Data(contentsOf: legacyURL)
+        var legacyState = try decoder.decode(AppStateModel.self, from: legacyData)
+        if legacyState.schemaVersion <= 0 {
+            legacyState.schemaVersion = AppStateModel.currentSchemaVersion
+        }
+
+        try saveState(legacyState)
+        logger.info("Migrated legacy WorkCheckpoint state from \(legacyURL.path)")
+        return legacyState
     }
 }

@@ -27,16 +27,34 @@ final class ChromeDetector: DetectorProtocol {
 
         let execution = AppleScriptRunner.run(script: script)
         if !execution.succeeded {
+            let reason = execution.errorOutput.isEmpty ? "unknown osascript error" : execution.errorOutput
+            if isPermissionIssue(reason) {
+                return DetectorOutput(
+                    detectorName: name,
+                    items: [],
+                    notes: ["Chrome unavailable"],
+                    warnings: [],
+                    status: .unavailable
+                )
+            }
+
             return DetectorOutput(
                 detectorName: name,
                 items: [],
-                warnings: ["Chrome detection failed: \(execution.errorOutput.isEmpty ? "unknown osascript error" : execution.errorOutput)"],
-                failed: true
+                notes: [],
+                warnings: ["Chrome detection failed: \(reason)"],
+                status: .failed
             )
         }
 
         if execution.output == "__NOT_RUNNING__" {
-            return DetectorOutput(detectorName: name, items: [], warnings: ["Google Chrome not running"], failed: false)
+            return DetectorOutput(
+                detectorName: name,
+                items: [],
+                notes: ["Chrome not running"],
+                warnings: [],
+                status: .notRunning
+            )
         }
 
         var warnings: [String] = []
@@ -54,6 +72,17 @@ final class ChromeDetector: DetectorProtocol {
             )
         }
 
-        return DetectorOutput(detectorName: name, items: items, warnings: warnings, failed: false)
+        return DetectorOutput(
+            detectorName: name,
+            items: items,
+            notes: [],
+            warnings: warnings,
+            status: warnings.isEmpty ? .success : .warning
+        )
+    }
+
+    private func isPermissionIssue(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return lower.contains("not authorized") || lower.contains("-1743") || lower.contains("automation")
     }
 }

@@ -17,4 +17,14 @@ enum FilePaths {
         try applicationSupportDirectory(fileManager: fileManager)
             .appendingPathComponent("state.json", isDirectory: false)
     }
+
+    static func legacyStateFileURL(fileManager: FileManager = .default) throws -> URL {
+        guard let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            throw AppError.persistenceFailed("Could not resolve Application Support directory")
+        }
+
+        return base
+            .appendingPathComponent("WorkCheckpoint", isDirectory: true)
+            .appendingPathComponent("state.json", isDirectory: false)
+    }
 }

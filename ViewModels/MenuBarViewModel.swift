@@ -14,7 +14,6 @@ final class MenuBarViewModel: ObservableObject {
 
     init(appState: AppState) {
         self.appState = appState
-        reload()
     }
 
     func reload() {
@@ -29,23 +28,23 @@ final class MenuBarViewModel: ObservableObject {
 
     func openPresets() {
         showPresetsWindow = true
-        statusLine = "Managing presets"
+        statusLine = "Presets"
     }
 
     func openSettings() {
         showSettingsWindow = true
-        statusLine = "Viewing settings"
+        statusLine = "Settings"
     }
 
     func beginSaveSession() {
         showSaveSheet = true
-        statusLine = "Detecting current session"
+        statusLine = "Save session"
     }
 
     func beginResumeSession() {
         guard canResumeLastSession else { return }
         showResumeSheet = true
-        statusLine = "Preparing resume"
+        statusLine = "Resume session"
     }
 
     func savePreset(_ preset: Preset) {
@@ -72,7 +71,7 @@ final class MenuBarViewModel: ObservableObject {
         appState.model.lastSnapshot = snapshot
         appState.save()
         reload()
-        statusLine = "Session snapshot saved (\(snapshot.items.count) items)"
+        statusLine = "Saved \(snapshot.items.count) items"
     }
 
     func launchPreset(_ preset: Preset) async -> LaunchReport {
@@ -82,11 +81,7 @@ final class MenuBarViewModel: ObservableObject {
             dryRun: false
         )
 
-        let shortcutStatus = report.shortcutResult.map {
-            $0.succeeded ? "shortcut ok" : "shortcut failed"
-        } ?? "no shortcut"
-
-        statusLine = "Preset \(preset.name): \(report.summaryLine), \(shortcutStatus)"
+        statusLine = "Preset \(preset.name): \(report.succeededCount) ok, \(report.failedCount) failed"
         return report
     }
 
@@ -98,11 +93,7 @@ final class MenuBarViewModel: ObservableObject {
             dryRun: false
         )
 
-        let shortcutStatus = report.shortcutResult.map {
-            $0.succeeded ? "shortcut ok" : "shortcut failed"
-        } ?? "no shortcut"
-
-        statusLine = "Resume: \(report.summaryLine), \(shortcutStatus)"
+        statusLine = "Resume: \(report.succeededCount) ok, \(report.failedCount) failed"
         return report
     }
 

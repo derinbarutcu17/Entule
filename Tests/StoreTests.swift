@@ -30,6 +30,38 @@ final class StoreTests: XCTestCase {
         let stateURL = try FilePaths.stateFileURL(fileManager: customFM)
         XCTAssertTrue(stateURL.path.contains("/Entule/state.json"))
     }
+
+    func testLegacyMigrationWhenEntuleStateMissing() throws {
+        let fileManager = FileManager.default
+        let root = fileManager.temporaryDirectory.appendingPathComponent("entule-migration-tests-\(UUID().uuidString)")
+        try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: root) }
+
+        let customFM = TestFileManager(baseURL: root)
+
+        let legacyDir = root.appendingPathComponent("WorkCheckpoint", isDirectory: true)
+        try fileManager.createDirectory(at: legacyDir, withIntermediateDirectories: true)
+        let legacyURL = legacyDir.appendingPathComponent("state.json")
+
+        var legacy = AppStateModel.empty
+        legacy.presets = [Preset(name: "LegacyPreset", items: [])]
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(legacy)
+        try data.write(to: legacyURL, options: .atomic)
+
+        let store = JSONStore(fileManager: customFM)
+        let loaded = try store.loadState()
+
+        XCTAssertEqual(loaded.presets.first?.name, "LegacyPreset")
+
+        let entuleStateURL = root
+            .appendingPathComponent("Entule", isDirectory: true)
+            .appendingPathComponent("state.json", isDirectory: false)
+        XCTAssertTrue(fileManager.fileExists(atPath: entuleStateURL.path))
+    }
 }
 
 final class TestFileManager: FileManager {

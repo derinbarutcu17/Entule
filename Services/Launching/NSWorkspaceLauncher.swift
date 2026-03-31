@@ -3,15 +3,20 @@ import Foundation
 
 final class NSWorkspaceLauncher: Launcher {
     private let workspace: NSWorkspace
+    private let appLaunchResolver: AppLaunchResolver
     private let shortcutRunner: ShortcutRunner
     private let logger: Logger
 
     init(
         workspace: NSWorkspace = .shared,
+        installedAppResolver: InstalledAppResolving? = nil,
+        fileChecker: FileExistenceChecking = FileManager.default,
         shortcutRunner: ShortcutRunner = ShortcutRunner(),
         logger: Logger = .shared
     ) {
         self.workspace = workspace
+        let resolver = installedAppResolver ?? NSWorkspaceInstalledAppResolver(workspace: workspace)
+        self.appLaunchResolver = AppLaunchResolver(fileChecker: fileChecker, installedAppResolver: resolver)
         self.shortcutRunner = shortcutRunner
         self.logger = logger
     }
@@ -64,24 +69,20 @@ final class NSWorkspaceLauncher: Launcher {
     }
 
     private func launchApp(_ item: SessionItem, report: inout LaunchReport) {
-        guard let appPath = item.appPath ?? optionalPath(from: item.value) else {
-            report.failures.append(LaunchIssue(item: item, reason: "Missing app path"))
-            return
-        }
+        let resolution = appLaunchResolver.resolve(item: item)
 
-        let appURL = URL(fileURLWithPath: appPath)
-        guard FileManager.default.fileExists(atPath: appURL.path) else {
-            report.failures.append(LaunchIssue(item: item, reason: "App missing at \(appURL.path)"))
-            return
-        }
-
-        let config = NSWorkspace.OpenConfiguration()
-        workspace.openApplication(at: appURL, configuration: config) { _, error in
-            if let error {
-                self.logger.error("App launch callback error: \(item.displayName) :: \(error.localizedDescription)")
+        switch resolution {
+        case let .resolved(appURL):
+            let config = NSWorkspace.OpenConfiguration()
+            workspace.openApplication(at: appURL, configuration: config) { _, error in
+                if let error {
+                    self.logger.error("App launch callback error: \(item.displayName) :: \(error.localizedDescription)")
+                }
             }
+            report.successes.append(item)
+        case let .failed(reason):
+            report.failures.append(LaunchIssue(item: item, reason: reason))
         }
-        report.successes.append(item)
     }
 
     private func launchPath(_ item: SessionItem, report: inout LaunchReport) {
@@ -143,8 +144,4 @@ final class NSWorkspaceLauncher: Launcher {
         return (deduped, skipped)
     }
 
-    private func optionalPath(from value: String) -> String? {
-        if value.hasPrefix("/") { return value }
-        return nil
-    }
 }

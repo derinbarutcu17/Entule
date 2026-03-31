@@ -27,16 +27,34 @@ final class SafariDetector: DetectorProtocol {
 
         let execution = AppleScriptRunner.run(script: script)
         if !execution.succeeded {
+            let reason = execution.errorOutput.isEmpty ? "unknown osascript error" : execution.errorOutput
+            if isPermissionIssue(reason) {
+                return DetectorOutput(
+                    detectorName: name,
+                    items: [],
+                    notes: ["Safari unavailable"],
+                    warnings: [],
+                    status: .unavailable
+                )
+            }
+
             return DetectorOutput(
                 detectorName: name,
                 items: [],
-                warnings: ["Safari detection failed: \(execution.errorOutput.isEmpty ? "unknown osascript error" : execution.errorOutput)"],
-                failed: true
+                notes: [],
+                warnings: ["Safari detection failed: \(reason)"],
+                status: .failed
             )
         }
 
         if execution.output == "__NOT_RUNNING__" {
-            return DetectorOutput(detectorName: name, items: [], warnings: ["Safari not running"], failed: false)
+            return DetectorOutput(
+                detectorName: name,
+                items: [],
+                notes: ["Safari not running"],
+                warnings: [],
+                status: .notRunning
+            )
         }
 
         var warnings: [String] = []
@@ -45,6 +63,7 @@ final class SafariDetector: DetectorProtocol {
                 warnings.append("Safari row skipped due to invalid URL")
                 return nil
             }
+
             return SessionItem(
                 kind: .url,
                 displayName: row.title.isEmpty ? normalized : row.title,
@@ -54,6 +73,17 @@ final class SafariDetector: DetectorProtocol {
             )
         }
 
-        return DetectorOutput(detectorName: name, items: items, warnings: warnings, failed: false)
+        return DetectorOutput(
+            detectorName: name,
+            items: items,
+            notes: [],
+            warnings: warnings,
+            status: warnings.isEmpty ? .success : .warning
+        )
+    }
+
+    private func isPermissionIssue(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return lower.contains("not authorized") || lower.contains("-1743") || lower.contains("automation")
     }
 }

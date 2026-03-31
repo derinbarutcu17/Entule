@@ -2,23 +2,29 @@ import SwiftUI
 
 @main
 struct EntuleApp: App {
-    @StateObject private var appState = AppState()
-    @StateObject private var menuBarViewModel: MenuBarViewModel
-
-    init() {
-        let appState = AppState()
-        _appState = StateObject(wrappedValue: appState)
-        _menuBarViewModel = StateObject(wrappedValue: MenuBarViewModel(appState: appState))
-    }
+    @StateObject private var container = AppContainer()
 
     var body: some Scene {
         MenuBarExtra("Entule", systemImage: "checklist") {
-            MenuBarRootView(viewModel: menuBarViewModel)
+            MenuBarRootView(viewModel: container.menuBarViewModel)
         }
         .menuBarExtraStyle(.menu)
 
         Settings {
             SettingsView()
         }
+    }
+}
+
+@MainActor
+final class AppContainer: ObservableObject {
+    let appState: AppState
+    let menuBarViewModel: MenuBarViewModel
+
+    init() {
+        let appState = AppState()
+        self.appState = appState
+        self.menuBarViewModel = MenuBarViewModel(appState: appState)
+        self.menuBarViewModel.reload()
     }
 }

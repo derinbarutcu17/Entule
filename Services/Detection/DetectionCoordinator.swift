@@ -24,6 +24,7 @@ final class DetectionCoordinator {
     func detectAll() async -> DetectionResult {
         let start = Date()
         var merged: [SessionItem] = []
+        var allNotes: [String] = []
         var allWarnings: [String] = []
         var detectorOutputs: [DetectorOutput] = []
 
@@ -36,6 +37,7 @@ final class DetectionCoordinator {
 
             for await output in group {
                 merged.append(contentsOf: output.items)
+                allNotes.append(contentsOf: output.notes)
                 allWarnings.append(contentsOf: output.warnings)
                 detectorOutputs.append(output)
             }
@@ -46,7 +48,8 @@ final class DetectionCoordinator {
 
         return DetectionResult(
             items: deduped,
-            warnings: allWarnings,
+            notes: unique(allNotes),
+            warnings: unique(allWarnings),
             detectorOutputs: detectorOutputs.sorted(by: { $0.detectorName < $1.detectorName }),
             startedAt: start,
             completedAt: Date()
@@ -75,5 +78,14 @@ final class DetectionCoordinator {
         }
 
         return result
+    }
+
+    private func unique(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.filter { value in
+            if seen.contains(value) { return false }
+            seen.insert(value)
+            return true
+        }
     }
 }

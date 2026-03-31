@@ -29,6 +29,12 @@ final class AppDetector: DetectorProtocol {
             )
         }
 
-        return DetectorOutput(detectorName: name, items: items, warnings: [], failed: false)
+        return DetectorOutput(
+            detectorName: name,
+            items: items,
+            notes: [],
+            warnings: [],
+            status: .success
+        )
     }
 }

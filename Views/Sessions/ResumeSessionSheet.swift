@@ -39,7 +39,16 @@ struct ResumeSessionSheet: View {
             if let report = viewModel.lastReport {
                 GroupBox("Resume Result") {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(report.summaryLine)
+                        Text("Attempted: \(report.attemptedCount)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text("Succeeded: \(report.succeededCount)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text("Failed: \(report.failedCount)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text("Skipped: \(report.skippedCount)")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
 
@@ -50,7 +59,11 @@ struct ResumeSessionSheet: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        if !report.failures.isEmpty {
+                        if report.failures.isEmpty {
+                            Text("No failed items.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
                             ForEach(report.failures.prefix(5), id: \.item.id) { failure in
                                 Text("• \(failure.item.displayName): \(failure.reason)")
                                     .font(.caption)

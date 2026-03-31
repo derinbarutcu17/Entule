@@ -9,22 +9,47 @@ final class DetectionNormalizationTests: XCTestCase {
     }
 
     func testDetectionMergeDedupe() async {
-        let a = StaticDetector(name: "A", output: DetectorOutput(
+        let a = StaticDetector(output: DetectorOutput(
             detectorName: "A",
             items: [SessionItem(kind: .url, displayName: "A", value: "example.com", source: "detected-safari", isSelected: true)],
+            notes: [],
             warnings: [],
-            failed: false
+            status: .success
         ))
-        let b = StaticDetector(name: "B", output: DetectorOutput(
+        let b = StaticDetector(output: DetectorOutput(
             detectorName: "B",
             items: [SessionItem(kind: .url, displayName: "B", value: "https://example.com/", source: "detected-chrome", isSelected: true)],
+            notes: [],
             warnings: [],
-            failed: false
+            status: .success
         ))
 
         let coordinator = DetectionCoordinator(detectors: [a, b])
         let result = await coordinator.detectAll()
         XCTAssertEqual(result.items.count, 1)
+    }
+
+    func testDetectionStatusAggregation() async {
+        let a = StaticDetector(output: DetectorOutput(
+            detectorName: "SafariDetector",
+            items: [],
+            notes: ["Safari not running"],
+            warnings: [],
+            status: .notRunning
+        ))
+        let b = StaticDetector(output: DetectorOutput(
+            detectorName: "FinderDetector",
+            items: [],
+            notes: [],
+            warnings: ["Finder detection failed"],
+            status: .failed
+        ))
+
+        let coordinator = DetectionCoordinator(detectors: [a, b])
+        let result = await coordinator.detectAll()
+
+        XCTAssertEqual(result.notes, ["Safari not running"])
+        XCTAssertEqual(result.warnings, ["Finder detection failed"])
     }
 
     func testBrowserParsingWithControlSeparators() {
@@ -49,7 +74,7 @@ final class DetectionNormalizationTests: XCTestCase {
 }
 
 struct StaticDetector: DetectorProtocol {
-    let name: String
+    let name = "StaticDetector"
     let output: DetectorOutput
 
     func detect() async -> DetectorOutput {

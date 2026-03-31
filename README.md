@@ -7,8 +7,10 @@ Entule is a macOS menu bar utility that saves and reopens a lightweight work ses
 - Runs as a menu bar-only app (`LSUIElement = true`)
 - Lets you create presets containing apps, files, folders, and URLs
 - Lets you detect a "current session" (best effort), review it, and save it
+- Lets you manually add apps, files, folders, and URLs during Save Current Session
 - Lets you resume the last saved session
 - Optionally runs a user-selected macOS Shortcut before launch/resume
+- App launch tries `appPath` first, then bundle identifier fallback if needed
 
 ## What It Does Not Do (v1)
 
@@ -40,12 +42,15 @@ Manual-only for v1:
 
 - State is stored locally in:
   - `~/Library/Application Support/Entule/state.json`
+- Legacy migration:
+  - If Entule state is missing but `~/Library/Application Support/WorkCheckpoint/state.json` exists, Entule imports it once.
 - No remote storage is used in v1.
 
 ## Known Limitations
 
 - No exact internal app state restoration
 - Browser/Finder detection is best effort
+- Browser/Finder "not running" is treated as normal state, not an error
 - No window layout restore in v1
 - URLs only restore if they were captured or manually saved
 - Focus behavior depends on user-created Shortcuts
