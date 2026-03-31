@@ -11,7 +11,7 @@ struct EntuleApp: App {
         .menuBarExtraStyle(.menu)
 
         Settings {
-            SettingsView()
+            SettingsView(menuBarViewModel: container.menuBarViewModel)
         }
     }
 }

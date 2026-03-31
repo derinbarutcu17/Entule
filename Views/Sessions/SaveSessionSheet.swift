@@ -7,6 +7,7 @@ struct SaveSessionSheet: View {
 
     @State private var manualURL = ""
     @State private var confirmSaveWithZeroItems = false
+    @State private var isSaving = false
 
     private var groupedItems: [SessionItemKind: [SessionItem]] {
         Dictionary(grouping: viewModel.items, by: { $0.kind })
@@ -23,6 +24,7 @@ struct SaveSessionSheet: View {
                 Spacer()
                 if viewModel.isDetecting { ProgressView() }
             }
+            .disabled(viewModel.isDetecting || isSaving)
 
             Text(summaryLine)
                 .font(.caption)
@@ -102,17 +104,19 @@ struct SaveSessionSheet: View {
                     }
                 }
             }
+            .disabled(viewModel.isDetecting || isSaving)
 
             TextField("Note", text: $viewModel.note)
             TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
 
             HStack {
                 Button("Cancel") { dismiss() }
+                    .disabled(isSaving)
                 Spacer()
-                Button(viewModel.isDetecting ? "Detecting…" : "Save Snapshot") {
+                Button(viewModel.isDetecting ? "Detecting…" : (isSaving ? "Saving…" : "Save Checkpoint")) {
                     saveSnapshotWithChecks()
                 }
-                .disabled(viewModel.isDetecting)
+                .disabled(viewModel.isDetecting || isSaving)
             }
         }
         .padding()
@@ -134,7 +138,7 @@ struct SaveSessionSheet: View {
     }
 
     private var summaryLine: String {
-        "Detected \(viewModel.detectedCount) items from \(viewModel.detectedSourceCount) sources. Selected \(viewModel.selectedCount)."
+        "Detected \(viewModel.detectedCount) items from \(viewModel.detectedSourceCount) sources • Selected \(viewModel.selectedCount)"
     }
 
     private func saveSnapshotWithChecks() {
@@ -146,6 +150,8 @@ struct SaveSessionSheet: View {
     }
 
     private func persistAndClose() {
+        guard !isSaving else { return }
+        isSaving = true
         menuBarViewModel.saveSnapshot(viewModel.toSnapshot())
         dismiss()
     }

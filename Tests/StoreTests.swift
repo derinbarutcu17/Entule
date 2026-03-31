@@ -62,6 +62,25 @@ final class StoreTests: XCTestCase {
             .appendingPathComponent("state.json", isDirectory: false)
         XCTAssertTrue(fileManager.fileExists(atPath: entuleStateURL.path))
     }
+
+    func testResetStateRecreatesCleanEmptyState() throws {
+        let fileManager = FileManager.default
+        let root = fileManager.temporaryDirectory.appendingPathComponent("entule-reset-tests-\(UUID().uuidString)")
+        try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: root) }
+
+        let customFM = TestFileManager(baseURL: root)
+        let store = JSONStore(fileManager: customFM)
+
+        var state = AppStateModel.empty
+        state.presets = [Preset(name: "ToDelete", items: [])]
+        try store.saveState(state)
+
+        try store.resetState()
+        let loaded = try store.loadState()
+        XCTAssertTrue(loaded.presets.isEmpty)
+        XCTAssertNil(loaded.lastSnapshot)
+    }
 }
 
 final class TestFileManager: FileManager {

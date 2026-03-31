@@ -1,6 +1,13 @@
 import Foundation
 
 final class DetectionCoordinator {
+    static let supportedDetectorNames = [
+        "AppDetector",
+        "FinderDetector",
+        "SafariDetector",
+        "ChromeDetector"
+    ]
+
     private let detectors: [DetectorProtocol]
     private let logger: Logger
 

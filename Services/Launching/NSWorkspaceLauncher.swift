@@ -3,6 +3,7 @@ import Foundation
 
 final class NSWorkspaceLauncher: Launcher {
     private let workspace: NSWorkspace
+    private let appOpenAwaiter: AppOpenAwaiter
     private let appLaunchResolver: AppLaunchResolver
     private let shortcutRunner: ShortcutRunner
     private let logger: Logger
@@ -15,6 +16,7 @@ final class NSWorkspaceLauncher: Launcher {
         logger: Logger = .shared
     ) {
         self.workspace = workspace
+        self.appOpenAwaiter = AppOpenAwaiter(opener: NSWorkspaceAppOpener(workspace: workspace))
         let resolver = installedAppResolver ?? NSWorkspaceInstalledAppResolver(workspace: workspace)
         self.appLaunchResolver = AppLaunchResolver(fileChecker: fileChecker, installedAppResolver: resolver)
         self.shortcutRunner = shortcutRunner
@@ -59,7 +61,7 @@ final class NSWorkspaceLauncher: Launcher {
 
             switch item.kind {
             case .app:
-                launchApp(item, report: &report)
+                await launchApp(item, report: &report)
             case .file, .folder:
                 launchPath(item, report: &report)
             case .url:
@@ -68,18 +70,19 @@ final class NSWorkspaceLauncher: Launcher {
         }
     }
 
-    private func launchApp(_ item: SessionItem, report: inout LaunchReport) {
+    private func launchApp(_ item: SessionItem, report: inout LaunchReport) async {
         let resolution = appLaunchResolver.resolve(item: item)
 
         switch resolution {
         case let .resolved(appURL):
-            let config = NSWorkspace.OpenConfiguration()
-            workspace.openApplication(at: appURL, configuration: config) { _, error in
-                if let error {
-                    self.logger.error("App launch callback error: \(item.displayName) :: \(error.localizedDescription)")
-                }
+            let openResult = await appOpenAwaiter.openApplication(at: appURL)
+            switch openResult {
+            case .success:
+                report.successes.append(item)
+            case let .failure(error):
+                logger.error("App launch failed: \(item.displayName) :: \(error.message)")
+                report.failures.append(LaunchIssue(item: item, reason: error.message))
             }
-            report.successes.append(item)
         case let .failed(reason):
             report.failures.append(LaunchIssue(item: item, reason: reason))
         }

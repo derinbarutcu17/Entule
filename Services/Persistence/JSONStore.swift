@@ -70,6 +70,15 @@ final class JSONStore: Store {
         return state
     }
 
+    func resetState() throws {
+        let appDirectory = try FilePaths.applicationSupportDirectory(fileManager: fileManager)
+        if fileManager.fileExists(atPath: appDirectory.path) {
+            try fileManager.removeItem(at: appDirectory)
+        }
+        try saveState(.empty)
+        logger.info("State reset in \(appDirectory.path)")
+    }
+
     private func migrateLegacyStateIfAvailable() throws -> AppStateModel? {
         let legacyURL = try FilePaths.legacyStateFileURL(fileManager: fileManager)
         guard fileManager.fileExists(atPath: legacyURL.path) else {

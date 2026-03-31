@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PresetListView: View {
     let presets: [Preset]
+    let isBusy: Bool
     let onLaunch: (Preset) -> Void
 
     var body: some View {
@@ -16,5 +17,6 @@ struct PresetListView: View {
                 }
             }
         }
+        .disabled(isBusy)
     }
 }

@@ -28,6 +28,7 @@ struct PresetManagementView: View {
                         Button("Launch") {
                             Task { await menuBarViewModel.launchPreset(preset) }
                         }
+                        .disabled(menuBarViewModel.isBusy)
                         Button("Edit") {
                             editingPreset = preset
                         }

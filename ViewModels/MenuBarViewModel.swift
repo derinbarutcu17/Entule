@@ -5,15 +5,25 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var presets: [Preset] = []
     @Published private(set) var lastSnapshot: SessionSnapshot?
     @Published var statusLine: String = "Ready"
+
     @Published var showPresetsWindow = false
     @Published var showSettingsWindow = false
     @Published var showSaveSheet = false
     @Published var showResumeSheet = false
 
+    @Published private(set) var isDetecting = false
+    @Published private(set) var isLaunching = false
+    @Published private(set) var isResuming = false
+    @Published private(set) var isSavingSnapshot = false
+
     private let appState: AppState
 
     init(appState: AppState) {
         self.appState = appState
+    }
+
+    var isBusy: Bool {
+        isDetecting || isLaunching || isResuming || isSavingSnapshot
     }
 
     func reload() {
@@ -23,7 +33,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     var canResumeLastSession: Bool {
-        lastSnapshot != nil
+        !isBusy && lastSnapshot != nil
     }
 
     func openPresets() {
@@ -37,6 +47,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func beginSaveSession() {
+        guard !isBusy else { return }
         showSaveSheet = true
         statusLine = "Save session"
     }
@@ -68,13 +79,48 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func saveSnapshot(_ snapshot: SessionSnapshot) {
+        guard !isSavingSnapshot else { return }
+        isSavingSnapshot = true
+        defer { isSavingSnapshot = false }
+
         appState.model.lastSnapshot = snapshot
         appState.save()
         reload()
         statusLine = "Saved \(snapshot.items.count) items"
     }
 
+    func clearLastSnapshot() {
+        guard !isBusy else { return }
+        appState.model.lastSnapshot = nil
+        appState.save()
+        reload()
+        statusLine = "Last snapshot cleared"
+    }
+
+    func resetAllLocalState() -> Bool {
+        guard !isBusy else { return false }
+
+        do {
+            try appState.environment.store.resetState()
+            reload()
+            statusLine = "Local data reset"
+            return true
+        } catch {
+            appState.environment.logger.error("Reset state failed: \(error.localizedDescription)")
+            statusLine = "Reset failed"
+            return false
+        }
+    }
+
     func launchPreset(_ preset: Preset) async -> LaunchReport {
+        guard !isBusy else {
+            return LaunchReport()
+        }
+
+        isLaunching = true
+        statusLine = "Launching preset…"
+        defer { isLaunching = false }
+
         let report = await appState.environment.launcher.launch(
             items: preset.items,
             shortcutName: preset.shortcutName,
@@ -86,7 +132,12 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func resumeLastSnapshot() async -> LaunchReport? {
-        guard let snapshot = lastSnapshot else { return nil }
+        guard !isBusy, let snapshot = lastSnapshot else { return nil }
+
+        isResuming = true
+        statusLine = "Resuming snapshot…"
+        defer { isResuming = false }
+
         let report = await appState.environment.launcher.launch(
             items: snapshot.items,
             shortcutName: snapshot.shortcutName,
@@ -98,6 +149,19 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func detectCurrentSession() async -> DetectionResult {
-        await appState.environment.detectionCoordinator.detectAll()
+        if isDetecting {
+            let now = Date()
+            return DetectionResult(items: [], notes: ["Detection already in progress"], warnings: [], detectorOutputs: [], startedAt: now, completedAt: now)
+        }
+
+        isDetecting = true
+        statusLine = "Detecting session…"
+        defer { isDetecting = false }
+
+        return await appState.environment.detectionCoordinator.detectAll()
+    }
+
+    var currentModel: AppStateModel {
+        appState.model
     }
 }

@@ -81,6 +81,7 @@ struct ResumeSessionSheet: View {
 
             HStack {
                 Button("Cancel") { dismiss() }
+                    .disabled(running)
                 Spacer()
                 Button(running ? "Resuming…" : "Resume") {
                     Task {

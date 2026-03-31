@@ -7,11 +7,12 @@ struct MenuBarRootView: View {
         Group {
             SessionActionsView(
                 canResume: viewModel.canResumeLastSession,
+                isBusy: viewModel.isBusy,
                 onResume: { viewModel.beginResumeSession() },
                 onSave: { viewModel.beginSaveSession() }
             )
 
-            PresetListView(presets: viewModel.presets) { preset in
+            PresetListView(presets: viewModel.presets, isBusy: viewModel.isBusy) { preset in
                 Task { await viewModel.launchPreset(preset) }
             }
 
@@ -46,7 +47,7 @@ struct MenuBarRootView: View {
             PresetManagementView(menuBarViewModel: viewModel)
         }
         .sheet(isPresented: $viewModel.showSettingsWindow) {
-            SettingsView()
+            SettingsView(menuBarViewModel: viewModel)
         }
         .sheet(isPresented: $viewModel.showResumeSheet) {
             if let snapshot = viewModel.lastSnapshot {
