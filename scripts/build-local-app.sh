@@ -10,7 +10,6 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
 cd "$ROOT_DIR"
 swift build >&2
-"$ROOT_DIR/scripts/generate-app-icon.py" >&2
 
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"

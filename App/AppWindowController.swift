@@ -57,7 +57,11 @@ final class AppWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = title
+        window.title = ""
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = false
+        window.toolbarStyle = .unified
+        window.backgroundColor = .windowBackgroundColor
         window.isReleasedWhenClosed = false
         window.minSize = size
         window.setContentSize(size)

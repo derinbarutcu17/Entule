@@ -1,125 +1,55 @@
 # Entule
 
-Entule is a macOS menu bar utility that saves and reopens a lightweight work session.
+Entule is a lightweight macOS app for saving a work checkpoint and reopening it later.
 
-## What It Does (v1)
+## What It Does
 
-- Runs as a menu bar-only app (`LSUIElement = true`)
-- Lets you create presets containing apps, files, folders, and URLs
-- Lets you detect a "current session" (best effort), review it, and save it
-- Lets you manually add apps, files, folders, and URLs during Save Current Session
-- Lets you resume the last saved session
-- Optionally runs a user-selected macOS Shortcut before launch/resume
-- App launch tries `appPath` first, then bundle identifier fallback if needed
+- Saves a checkpoint made of apps, folders, files, and URLs
+- Reopens the latest checkpoint with one action
+- Lets you create presets for repeatable work setups
+- Runs from the menu bar and opens into a dedicated app window
 
-## What It Does Not Do (v1)
+## Download
 
-- No notch UI
-- No LLM or AI suggestions
-- No browser session manager
-- No cloud sync
-- No background auto-capture daemon
-- No onboarding flow
-- No analytics/subscription/paywall
+For now, Entule is distributed directly from this repository.
 
-## Supported Detection (v1)
+- Open the latest release assets when available
+- Or build the app locally from source
 
-- Running apps (`NSWorkspace`)
-- Finder target folders (best effort AppleScript)
-- Safari active tabs (best effort AppleScript)
-- Google Chrome active tabs (best effort AppleScript)
+## Build Locally
 
-Manual-only for v1:
+```bash
+swift build
+./scripts/install-local-app.sh
+```
 
-- Slack
-- Photoshop documents
-- Cursor/Codex
-- ChatGPT
-- WhatsApp
-- Figma desktop app
+That installs `Entule.app` into `/Applications`.
+
+## Create A Local DMG
+
+```bash
+./scripts/create-dmg.sh
+```
+
+The generated disk image will appear in:
+
+`dist/Entule-v0.1.0.dmg`
+
+## Requirements
+
+- macOS 13 or later
+- Automation permission for Finder, Safari, and Google Chrome if you want browser or Finder detection
 
 ## Privacy
 
-- State is stored locally in:
-  - `~/Library/Application Support/Entule/state.json`
-- Legacy migration:
-  - If Entule state is missing but `~/Library/Application Support/WorkCheckpoint/state.json` exists, Entule imports it once.
-- No remote storage is used in v1.
+Entule stores its data locally on your Mac:
 
-## Run Locally (macOS)
+`~/Library/Application Support/Entule/state.json`
 
-1. Clone the repo.
-2. Run `swift build`.
-3. For the most reliable local app-style launch, run:
-   - `./scripts/run-local-app.sh`
-4. To install the current build into `/Applications`, run:
-   - `./scripts/install-local-app.sh`
-5. To generate a shareable local DMG, run:
-   - `./scripts/create-dmg.sh`
-6. Or use `swift run Entule` for a quick developer launch.
-7. Confirm the app appears in the menu bar and opens Entule windows when requested.
+No cloud sync or remote storage is used in v1.
 
-## Automation Permissions (Finder/Safari/Chrome)
+## Notes
 
-- If browser or Finder detection is empty, open:
-  - `System Settings > Privacy & Security > Automation`
-- Allow Entule to control Finder, Safari, and Google Chrome.
-- Entule treats "not running" apps as normal state, not an error.
-
-## Storage and Migration
-
-- Primary state path:
-  - `~/Library/Application Support/Entule/state.json`
-- Legacy import:
-  - If Entule state is missing and `~/Library/Application Support/WorkCheckpoint/state.json` exists, Entule imports it once at startup.
-
-## First Manual Test Flow
-
-1. Create one preset with an app, folder, and URL.
-2. Launch the preset from the menu.
-3. Use `Save Current Session`, uncheck one item, then save.
-4. Use `Resume Last Session` and verify attempted/succeeded/failed/skipped counts.
-5. Test one broken path/URL to confirm failure reporting is clear and non-crashing.
-
-## Reset During Testing
-
-- Open `Settings > Testing & Storage` and use:
-  - `Reveal Entule Data Folder`
-  - `Reveal state.json`
-  - `Clear Last Snapshot`
-  - `Reset All Local Data`
-- `Reset All Local Data` recreates a clean empty state automatically.
-
-## Known Limitations
-
-- No exact internal app state restoration
-- Browser/Finder detection is best effort
-- Browser/Finder "not running" is treated as normal state, not an error
-- No window layout restore in v1
-- URLs only restore if they were captured or manually saved
-- Focus behavior depends on user-created Shortcuts
-
-## Technical Baseline
-
-- Swift + SwiftUI app lifecycle
-- `MenuBarExtra` shell
-- AppKit interop where needed (`NSOpenPanel`, `NSWorkspace`)
-- JSON persistence in Application Support
-- AppleScript/Apple Events for selective detection only
-- `shortcuts` CLI for Focus/Do Not Disturb hooks
-
-## Manual QA Checklist
-
-- Create preset
-- Edit preset
-- Delete preset
-- Launch preset
-- Save session
-- Uncheck some detected items
-- Resume last session
-- Missing file path behavior
-- Bad URL behavior
-- Safari open / closed
-- Chrome open / closed
-- Finder open / closed
-- Shortcut exists / missing
+- Browser and Finder detection are best effort
+- Entule reopens saved resources, but it does not restore exact internal app state
+- Some third-party apps may behave differently depending on how they handle macOS launch requests

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EntuleDashboardView: View {
     @ObservedObject var menuBarViewModel: MenuBarViewModel
+    @State private var hoveredSection: AppSection?
 
     var body: some View {
         HStack(spacing: 18) {
@@ -20,11 +21,6 @@ struct EntuleDashboardView: View {
         .padding(20)
         .frame(minWidth: 1120, minHeight: 760)
         .entuleWindowBackground()
-        .background(
-            WindowAccessor { window in
-                WindowCoordinator.activate(window: window)
-            }
-        )
     }
 
     private var sidebar: some View {
@@ -60,17 +56,22 @@ struct EntuleDashboardView: View {
                             }
                             Spacer()
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
-                        .background(menuBarViewModel.activeSection == section ? Color.white.opacity(0.08) : Color.clear)
+                        .background(backgroundFill(for: section))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(menuBarViewModel.activeSection == section ? EntuleTheme.lineWarm : Color.clear, lineWidth: 1)
+                                .stroke(borderColor(for: section), lineWidth: 1)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(menuBarViewModel.activeSection == section ? EntuleTheme.moon : EntuleTheme.moonDim)
+                    .onHover { isHovering in
+                        hoveredSection = isHovering ? section : (hoveredSection == section ? nil : hoveredSection)
+                    }
                 }
             }
 
@@ -241,29 +242,53 @@ struct EntuleDashboardView: View {
         isDisabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(EntuleTheme.moon)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(EntuleTheme.moon)
 
-            Text(detail)
-                .font(.system(size: 13))
-                .foregroundStyle(EntuleTheme.moonDim)
+                Text(detail)
+                    .font(.system(size: 13))
+                    .foregroundStyle(EntuleTheme.moonDim)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-            if isPrimary {
-                Button(actionTitle, action: action)
-                    .buttonStyle(EntulePrimaryButtonStyle())
-                    .disabled(isDisabled)
-            } else {
-                Button(actionTitle, action: action)
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                    .disabled(isDisabled)
+                HStack {
+                    if isPrimary {
+                        Text(actionTitle)
+                            .font(.system(size: 13, weight: .semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(EntuleTheme.primaryButtonGradient)
+                            .foregroundStyle(Color.black.opacity(0.88))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    } else {
+                        Text(actionTitle)
+                            .font(.system(size: 13, weight: .medium))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(Color.white.opacity(0.05))
+                            .foregroundStyle(EntuleTheme.moon)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(EntuleTheme.lineWarm, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    Spacer()
+                }
             }
+            .frame(maxWidth: .infinity, minHeight: 190, maxHeight: .infinity, alignment: .topLeading)
+            .entulePanel()
+            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
-        .frame(maxWidth: .infinity, minHeight: 190, maxHeight: .infinity, alignment: .topLeading)
-        .entulePanel()
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
     }
 
     private func checkpointStatRow(label: String, value: String) -> some View {
@@ -322,5 +347,25 @@ struct EntuleDashboardView: View {
             .font(.system(size: 13))
             .foregroundStyle(EntuleTheme.moonDim)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func backgroundFill(for section: AppSection) -> Color {
+        if menuBarViewModel.activeSection == section {
+            return Color.white.opacity(0.08)
+        }
+        if hoveredSection == section {
+            return Color.white.opacity(0.045)
+        }
+        return .clear
+    }
+
+    private func borderColor(for section: AppSection) -> Color {
+        if menuBarViewModel.activeSection == section {
+            return EntuleTheme.lineWarm
+        }
+        if hoveredSection == section {
+            return EntuleTheme.lineSoft
+        }
+        return .clear
     }
 }

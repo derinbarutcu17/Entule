@@ -14,20 +14,13 @@ let package = Package(
             name: "Entule",
             path: ".",
             exclude: [
-                "Tests",
                 "README.md",
                 "Info.plist",
                 "Resources",
                 "dist",
-                "website",
                 "scripts",
                 ".build"
             ]
-        ),
-        .testTarget(
-            name: "EntuleTests",
-            dependencies: ["Entule"],
-            path: "Tests"
         )
     ]
 )
