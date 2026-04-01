@@ -11,14 +11,15 @@ struct SessionItemRow: View {
 
             Text(item.kind.rawValue.uppercased())
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(EntuleTheme.moonDim)
                 .frame(width: 60, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayName)
+                    .foregroundStyle(EntuleTheme.moon)
                 Text(item.value)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(EntuleTheme.moonDim)
             }
 
             Spacer()
@@ -27,12 +28,19 @@ struct SessionItemRow: View {
                 .font(.caption2)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(.thinMaterial)
+                .background(Color.white.opacity(0.06))
+                .foregroundStyle(EntuleTheme.amber)
+                .overlay(
+                    Capsule()
+                        .stroke(EntuleTheme.lineWarm, lineWidth: 1)
+                )
                 .clipShape(Capsule())
 
             if let onRemove {
                 Button("Remove", role: .destructive, action: onRemove)
+                    .buttonStyle(EntuleSecondaryButtonStyle())
             }
         }
+        .padding(.vertical, 4)
     }
 }

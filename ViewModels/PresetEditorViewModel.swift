@@ -29,7 +29,7 @@ final class PresetEditorViewModel: ObservableObject {
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
 
-        if panel.runModal() == .OK {
+        if OpenPanelCoordinator.runModal(panel) == .OK {
             for url in panel.urls {
                 let path = url.path
                 items.append(
@@ -52,7 +52,7 @@ final class PresetEditorViewModel: ObservableObject {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
 
-        if panel.runModal() == .OK {
+        if OpenPanelCoordinator.runModal(panel) == .OK {
             for url in panel.urls {
                 let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
                 items.append(

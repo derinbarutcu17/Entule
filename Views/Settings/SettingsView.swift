@@ -11,61 +11,104 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Permissions") {
-                Toggle("Show automation hint", isOn: $viewModel.showPermissionsHint)
-
-                if viewModel.showPermissionsHint {
-                    Text(viewModel.permissionsHint)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Section("Testing & Storage") {
-                Button("Reveal Entule Data Folder") {
-                    viewModel.revealDataFolder()
-                }
-
-                Button("Reveal state.json") {
-                    viewModel.revealStateFile()
-                }
-
-                Button("Clear Last Snapshot") {
-                    confirmClearSnapshot = true
-                }
-
-                Button("Reset All Local Data", role: .destructive) {
-                    confirmResetAllState = true
-                }
-
-                if !viewModel.feedbackMessage.isEmpty {
-                    Text(viewModel.feedbackMessage)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Settings")
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
+                        .foregroundStyle(EntuleTheme.moon)
+                    Text("Testing tools, storage controls, and local diagnostics.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(EntuleTheme.moonDim)
                 }
-            }
 
-            Section("Diagnostics") {
-                ScrollView {
-                    Text(viewModel.diagnosticsText)
-                        .font(.system(.caption, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                }
-                .frame(minHeight: 140)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Permissions")
+                        .font(.headline)
+                        .foregroundStyle(EntuleTheme.moon)
 
-                HStack {
-                    Button("Refresh Diagnostics") {
-                        viewModel.refreshDiagnostics()
-                    }
-                    Button("Copy Diagnostics") {
-                        viewModel.copyDiagnostics()
+                    Toggle("Show automation hint", isOn: $viewModel.showPermissionsHint)
+                        .foregroundStyle(EntuleTheme.moon)
+
+                    if viewModel.showPermissionsHint {
+                        Text(viewModel.permissionsHint)
+                            .font(.caption)
+                            .foregroundStyle(EntuleTheme.moonDim)
                     }
                 }
+                .entulePanel()
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Testing & Storage")
+                        .font(.headline)
+                        .foregroundStyle(EntuleTheme.moon)
+
+                    HStack {
+                        Button("Reveal Entule Data Folder") {
+                            viewModel.revealDataFolder()
+                        }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                        Button("Reveal state.json") {
+                            viewModel.revealStateFile()
+                        }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    }
+
+                    HStack {
+                        Button("Clear Last Snapshot") {
+                            confirmClearSnapshot = true
+                        }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                        Button("Reset All Local Data", role: .destructive) {
+                            confirmResetAllState = true
+                        }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    }
+
+                    if !viewModel.feedbackMessage.isEmpty {
+                        Text(viewModel.feedbackMessage)
+                            .font(.caption)
+                            .foregroundStyle(EntuleTheme.moonDim)
+                    }
+                }
+                .entulePanel()
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Diagnostics")
+                        .font(.headline)
+                        .foregroundStyle(EntuleTheme.moon)
+
+                    ScrollView {
+                        Text(viewModel.diagnosticsText)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(EntuleTheme.moon)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                    }
+                    .frame(minHeight: 180)
+
+                    HStack {
+                        Button("Refresh Diagnostics") {
+                            viewModel.refreshDiagnostics()
+                        }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                        Button("Copy Diagnostics") {
+                            viewModel.copyDiagnostics()
+                        }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    }
+                }
+                .entulePanel()
             }
+            .padding()
         }
-        .padding()
-        .frame(width: 520)
+        .frame(width: 620, height: 620)
+        .entuleWindowBackground()
+        .background(
+            WindowAccessor { window in
+                WindowCoordinator.activate(window: window)
+            }
+        )
         .alert("Clear last snapshot?", isPresented: $confirmClearSnapshot) {
             Button("Cancel", role: .cancel) {}
             Button("Clear") {

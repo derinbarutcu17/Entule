@@ -5,6 +5,7 @@ final class NSWorkspaceLauncher: Launcher {
     private let workspace: NSWorkspace
     private let appOpenAwaiter: AppOpenAwaiter
     private let appLaunchResolver: AppLaunchResolver
+    private let fallbackAppLauncher: FallbackAppLauncher
     private let shortcutRunner: ShortcutRunner
     private let logger: Logger
 
@@ -12,6 +13,7 @@ final class NSWorkspaceLauncher: Launcher {
         workspace: NSWorkspace = .shared,
         installedAppResolver: InstalledAppResolving? = nil,
         fileChecker: FileExistenceChecking = FileManager.default,
+        fallbackAppLauncher: FallbackAppLauncher = FallbackAppLauncher(),
         shortcutRunner: ShortcutRunner = ShortcutRunner(),
         logger: Logger = .shared
     ) {
@@ -19,6 +21,7 @@ final class NSWorkspaceLauncher: Launcher {
         self.appOpenAwaiter = AppOpenAwaiter(opener: NSWorkspaceAppOpener(workspace: workspace))
         let resolver = installedAppResolver ?? NSWorkspaceInstalledAppResolver(workspace: workspace)
         self.appLaunchResolver = AppLaunchResolver(fileChecker: fileChecker, installedAppResolver: resolver)
+        self.fallbackAppLauncher = fallbackAppLauncher
         self.shortcutRunner = shortcutRunner
         self.logger = logger
     }
@@ -80,8 +83,13 @@ final class NSWorkspaceLauncher: Launcher {
             case .success:
                 report.successes.append(item)
             case let .failure(error):
-                logger.error("App launch failed: \(item.displayName) :: \(error.message)")
-                report.failures.append(LaunchIssue(item: item, reason: error.message))
+                if fallbackAppLauncher.launch(item: item, resolvedAppURL: appURL) {
+                    logger.info("Fallback launch succeeded for \(item.displayName)")
+                    report.successes.append(item)
+                } else {
+                    logger.error("App launch failed: \(item.displayName) :: \(error.message)")
+                    report.failures.append(LaunchIssue(item: item, reason: "\(error.message). Fallback open also failed"))
+                }
             }
         case let .failed(reason):
             report.failures.append(LaunchIssue(item: item, reason: reason))

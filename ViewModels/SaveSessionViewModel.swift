@@ -119,7 +119,7 @@ final class SaveSessionViewModel: ObservableObject {
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = true
 
-        guard panel.runModal() == .OK else { return }
+        guard OpenPanelCoordinator.runModal(panel) == .OK else { return }
 
         for url in panel.urls {
             _ = addManualApp(
@@ -136,7 +136,7 @@ final class SaveSessionViewModel: ObservableObject {
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = true
 
-        guard panel.runModal() == .OK else { return }
+        guard OpenPanelCoordinator.runModal(panel) == .OK else { return }
         panel.urls.forEach { _ = addManualPath(path: $0.path, isFolder: false) }
     }
 
@@ -146,7 +146,7 @@ final class SaveSessionViewModel: ObservableObject {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
 
-        guard panel.runModal() == .OK else { return }
+        guard OpenPanelCoordinator.runModal(panel) == .OK else { return }
         panel.urls.forEach { _ = addManualPath(path: $0.path, isFolder: true) }
     }
 

@@ -6,11 +6,6 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var lastSnapshot: SessionSnapshot?
     @Published var statusLine: String = "Ready"
 
-    @Published var showPresetsWindow = false
-    @Published var showSettingsWindow = false
-    @Published var showSaveSheet = false
-    @Published var showResumeSheet = false
-
     @Published private(set) var isDetecting = false
     @Published private(set) var isLaunching = false
     @Published private(set) var isResuming = false
@@ -37,24 +32,20 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func openPresets() {
-        showPresetsWindow = true
         statusLine = "Presets"
     }
 
     func openSettings() {
-        showSettingsWindow = true
         statusLine = "Settings"
     }
 
     func beginSaveSession() {
         guard !isBusy else { return }
-        showSaveSheet = true
         statusLine = "Save session"
     }
 
     func beginResumeSession() {
         guard canResumeLastSession else { return }
-        showResumeSheet = true
         statusLine = "Resume session"
     }
 

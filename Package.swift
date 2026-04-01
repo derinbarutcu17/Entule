@@ -16,7 +16,12 @@ let package = Package(
             exclude: [
                 "Tests",
                 "README.md",
-                "Info.plist"
+                "Info.plist",
+                "Resources",
+                "dist",
+                "website",
+                "scripts",
+                ".build"
             ]
         ),
         .testTarget(

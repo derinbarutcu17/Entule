@@ -50,8 +50,14 @@ Manual-only for v1:
 
 1. Clone the repo.
 2. Run `swift build`.
-3. Run `swift run Entule` or open the package in Xcode and run the app target.
-4. Confirm the app appears in the menu bar (not in Dock).
+3. For the most reliable local app-style launch, run:
+   - `./scripts/run-local-app.sh`
+4. To install the current build into `/Applications`, run:
+   - `./scripts/install-local-app.sh`
+5. To generate a shareable local DMG, run:
+   - `./scripts/create-dmg.sh`
+6. Or use `swift run Entule` for a quick developer launch.
+7. Confirm the app appears in the menu bar and opens Entule windows when requested.
 
 ## Automation Permissions (Finder/Safari/Chrome)
 
