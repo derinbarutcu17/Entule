@@ -15,10 +15,18 @@ struct EntuleApp: App {
 
 final class EntuleAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        WindowCoordinator.enterMenuBarModeIfPossible()
         DispatchQueue.main.async {
             let viewModel = AppContainer.shared.menuBarViewModel
             AppWindowController.shared.showDashboard(menuBarViewModel: viewModel)
         }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard !flag else { return true }
+        let viewModel = AppContainer.shared.menuBarViewModel
+        AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: viewModel.activeSection)
+        return true
     }
 }
 

@@ -6,7 +6,7 @@ enum OpenPanelCoordinator {
     static func runModal(_ panel: NSOpenPanel) -> NSApplication.ModalResponse {
         let parentWindow = NSApp.keyWindow ?? NSApp.mainWindow
         let response = panel.runModal()
-        WindowCoordinator.activate(window: parentWindow)
+        parentWindow?.makeKeyAndOrderFront(nil)
         return response
     }
 }

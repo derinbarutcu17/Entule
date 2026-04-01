@@ -53,17 +53,17 @@ final class AppWindowController {
 
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = ""
         window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.toolbarStyle = .unifiedCompact
-        window.backgroundColor = .clear
-        window.isOpaque = false
-        window.isMovableByWindowBackground = true
+        window.titlebarAppearsTransparent = false
+        window.toolbarStyle = .automatic
+        window.backgroundColor = .windowBackgroundColor
+        window.isOpaque = true
+        window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
         window.minSize = size
         window.setContentSize(size)
@@ -98,6 +98,14 @@ final class AppWindowController {
 
 private final class PrimaryWindowDelegate: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        WindowCoordinator.enterMenuBarModeIfPossible()
+    }
+
+    func windowDidMiniaturize(_ notification: Notification) {
+        WindowCoordinator.enterMenuBarModeIfPossible()
+    }
+
+    func windowDidDeminiaturize(_ notification: Notification) {
+        WindowCoordinator.enterWindowMode()
     }
 }
