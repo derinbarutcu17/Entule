@@ -19,7 +19,7 @@ struct EntuleDashboardView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(20)
-        .frame(minWidth: 1120, minHeight: 760)
+        .frame(minWidth: 980, minHeight: 660)
         .entuleWindowBackground()
     }
 
@@ -92,7 +92,7 @@ struct EntuleDashboardView: View {
             }
             .entulePanel()
         }
-        .frame(minWidth: 280, maxWidth: 280, maxHeight: .infinity, alignment: .topLeading)
+        .frame(minWidth: 250, maxWidth: 250, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var header: some View {
@@ -157,7 +157,7 @@ struct EntuleDashboardView: View {
                     isPrimary: false,
                     isDisabled: !menuBarViewModel.canResumeLastSession
                 ) {
-                    menuBarViewModel.beginResumeSession()
+                    Task { _ = await menuBarViewModel.resumeLastSnapshot() }
                 }
 
                 actionPanel(
@@ -189,6 +189,20 @@ struct EntuleDashboardView: View {
                                 .foregroundStyle(EntuleTheme.moon)
                                 .padding(.top, 4)
                         }
+
+                        HStack(spacing: 10) {
+                            Button("Resume") {
+                                Task { _ = await menuBarViewModel.resumeLastSnapshot() }
+                            }
+                            .buttonStyle(EntulePrimaryButtonStyle())
+                            .disabled(!menuBarViewModel.canResumeLastSession)
+
+                            Button("Inspect") {
+                                menuBarViewModel.inspectLastSnapshot()
+                            }
+                            .buttonStyle(EntuleSecondaryButtonStyle())
+                        }
+                        .padding(.top, 6)
                     } else {
                         emptyStateInline("No checkpoint saved yet.")
                     }
@@ -283,7 +297,7 @@ struct EntuleDashboardView: View {
                     Spacer()
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 190, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 150, maxHeight: .infinity, alignment: .topLeading)
             .entulePanel()
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }

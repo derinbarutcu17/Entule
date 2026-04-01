@@ -16,7 +16,7 @@ final class AppWindowController {
         primaryWindow = showWindow(
             existing: primaryWindow,
             title: "Entule",
-            size: NSSize(width: 1120, height: 760),
+            size: NSSize(width: 980, height: 660),
             rootView: view
         )
     }
@@ -53,15 +53,17 @@ final class AppWindowController {
 
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = ""
         window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = false
-        window.toolbarStyle = .unified
-        window.backgroundColor = .windowBackgroundColor
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unifiedCompact
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.minSize = size
         window.setContentSize(size)

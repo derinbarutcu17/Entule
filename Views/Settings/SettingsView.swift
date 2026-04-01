@@ -13,15 +13,6 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Settings")
-                        .font(.system(size: 28, weight: .semibold, design: .rounded))
-                        .foregroundStyle(EntuleTheme.moon)
-                    Text("Testing tools, storage controls, and local diagnostics.")
-                        .font(.caption)
-                        .foregroundStyle(EntuleTheme.moonDim)
-                }
-
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Permissions")
                         .font(.headline)

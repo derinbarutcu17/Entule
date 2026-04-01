@@ -17,10 +17,7 @@ struct MenuBarRootView: View {
                 canResume: viewModel.canResumeLastSession,
                 isBusy: viewModel.isBusy,
                 onResume: {
-                    viewModel.beginResumeSession()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .resumeSession)
-                    }
+                    Task { _ = await viewModel.resumeLastSnapshot() }
                 },
                 onSave: {
                     viewModel.beginSaveSession()

@@ -9,15 +9,7 @@ struct PresetManagementView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Presets")
-                        .font(.system(size: 28, weight: .semibold, design: .rounded))
-                        .foregroundStyle(EntuleTheme.moon)
-                    Text("Reusable launch sets for repeatable work sessions.")
-                        .font(.caption)
-                        .foregroundStyle(EntuleTheme.moonDim)
-                }
-                Spacer()
+                Spacer(minLength: 0)
                 Button("New Preset") { isCreating = true }
                     .buttonStyle(EntulePrimaryButtonStyle())
             }

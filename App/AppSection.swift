@@ -16,7 +16,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .saveSession:
             return "Save Session"
         case .resumeSession:
-            return "Resume Session"
+            return "Inspect Checkpoint"
         case .presets:
             return "Presets"
         case .settings:
@@ -31,7 +31,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .saveSession:
             return "Review what Entule detected, trim the noise, and save a checkpoint."
         case .resumeSession:
-            return "Reopen the latest checkpoint and inspect the launch result."
+            return "Review the latest saved checkpoint before or after reopening it."
         case .presets:
             return "Build reusable launch sets for the work you repeat often."
         case .settings:

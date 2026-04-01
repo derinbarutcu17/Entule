@@ -9,14 +9,9 @@ struct ResumeSessionSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Resume Last Session")
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
-                    .foregroundStyle(EntuleTheme.moon)
-                Text("Created \(viewModel.snapshot.createdAt.formatted()) • \(viewModel.snapshot.items.count) items")
-                    .font(.caption)
-                    .foregroundStyle(EntuleTheme.moonDim)
-            }
+            Text("Created \(viewModel.snapshot.createdAt.formatted()) • \(viewModel.snapshot.items.count) items")
+                .font(.caption)
+                .foregroundStyle(EntuleTheme.moonDim)
 
             if !viewModel.snapshot.note.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -45,7 +40,7 @@ struct ResumeSessionSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
-            .frame(minHeight: 260, maxHeight: .infinity)
+            .frame(minHeight: 220, maxHeight: .infinity)
             .entulePanel()
 
             if let report = viewModel.lastReport {

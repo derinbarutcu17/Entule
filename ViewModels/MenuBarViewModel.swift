@@ -50,8 +50,13 @@ final class MenuBarViewModel: ObservableObject {
 
     func beginResumeSession() {
         guard canResumeLastSession else { return }
+        statusLine = "Resuming snapshot…"
+    }
+
+    func inspectLastSnapshot() {
+        guard lastSnapshot != nil else { return }
         activeSection = .resumeSession
-        statusLine = "Resume session"
+        statusLine = "Inspect checkpoint"
     }
 
     func showHome() {
@@ -67,7 +72,7 @@ final class MenuBarViewModel: ObservableObject {
         case .saveSession:
             statusLine = "Save session"
         case .resumeSession:
-            statusLine = "Resume session"
+            statusLine = "Inspect checkpoint"
         case .presets:
             statusLine = "Presets"
         case .settings:

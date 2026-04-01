@@ -15,14 +15,9 @@ struct SaveSessionSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Save Current Session")
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
-                    .foregroundStyle(EntuleTheme.moon)
-                Text(summaryLine)
-                    .font(.caption)
-                    .foregroundStyle(EntuleTheme.moonDim)
-            }
+            Text(summaryLine)
+                .font(.caption)
+                .foregroundStyle(EntuleTheme.moonDim)
 
             HStack(spacing: 10) {
                 Button("Select All") { viewModel.selectAll() }
@@ -50,7 +45,7 @@ struct SaveSessionSheet: View {
                             .foregroundStyle(EntuleTheme.danger)
                     }
                 }
-                .frame(width: 260)
+                .frame(width: 220)
 
                 VStack(alignment: .leading, spacing: 12) {
                     if viewModel.items.isEmpty && !viewModel.isDetecting {
@@ -83,7 +78,7 @@ struct SaveSessionSheet: View {
                         }
                         .scrollContentBackground(.hidden)
                         .background(Color.clear)
-                        .frame(minHeight: 320, maxHeight: .infinity)
+                        .frame(minHeight: 240, maxHeight: .infinity)
                         .entulePanel()
                     }
                 }
@@ -92,10 +87,6 @@ struct SaveSessionSheet: View {
             .frame(maxHeight: .infinity, alignment: .top)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Manual Add")
-                    .font(.headline)
-                    .foregroundStyle(EntuleTheme.moon)
-
                 HStack {
                     Button("Add App…") { viewModel.addManualAppsFromPicker() }
                         .buttonStyle(EntuleSecondaryButtonStyle())
