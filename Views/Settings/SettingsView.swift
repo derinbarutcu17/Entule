@@ -100,15 +100,9 @@ struct SettingsView: View {
                 }
                 .entulePanel()
             }
-            .padding()
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(width: 620, height: 620)
-        .entuleWindowBackground()
-        .background(
-            WindowAccessor { window in
-                WindowCoordinator.activate(window: window)
-            }
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .alert("Clear last snapshot?", isPresented: $confirmClearSnapshot) {
             Button("Cancel", role: .cancel) {}
             Button("Clear") {

@@ -52,16 +52,10 @@ struct PresetManagementView: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .entulePanel()
         }
-        .padding()
-        .frame(minWidth: 860, minHeight: 620)
-        .entuleWindowBackground()
-        .background(
-            WindowAccessor { window in
-                WindowCoordinator.activate(window: window)
-            }
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .sheet(item: $editingPreset) { preset in
             PresetEditorView(viewModel: PresetEditorViewModel(preset: preset)) { updated in
                 menuBarViewModel.savePreset(updated)

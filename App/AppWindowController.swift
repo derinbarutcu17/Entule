@@ -5,89 +5,36 @@ import SwiftUI
 final class AppWindowController {
     static let shared = AppWindowController()
 
-    private var dashboardWindow: NSWindow?
-    private var presetsWindow: NSWindow?
-    private var saveSessionWindow: NSWindow?
-    private var resumeSessionWindow: NSWindow?
-    private var settingsWindow: NSWindow?
+    private var primaryWindow: NSWindow?
+    private let windowDelegate = PrimaryWindowDelegate()
 
     private init() {}
 
-    func showDashboard(menuBarViewModel: MenuBarViewModel) {
+    func showDashboard(menuBarViewModel: MenuBarViewModel, section: AppSection = .home) {
+        menuBarViewModel.navigate(to: section)
         let view = EntuleDashboardView(menuBarViewModel: menuBarViewModel)
-        dashboardWindow = showWindow(
-            existing: dashboardWindow,
+        primaryWindow = showWindow(
+            existing: primaryWindow,
             title: "Entule",
-            size: NSSize(width: 760, height: 560),
+            size: NSSize(width: 1120, height: 760),
             rootView: view
         )
     }
 
     func showPresets(menuBarViewModel: MenuBarViewModel) {
-        let view = PresetManagementView(menuBarViewModel: menuBarViewModel)
-        presetsWindow = showWindow(
-            existing: presetsWindow,
-            title: "Presets",
-            size: NSSize(width: 860, height: 620),
-            rootView: view
-        )
+        showDashboard(menuBarViewModel: menuBarViewModel, section: .presets)
     }
 
     func showSaveSession(menuBarViewModel: MenuBarViewModel) {
-        let view = SaveSessionSheet(
-            viewModel: SaveSessionViewModel(),
-            menuBarViewModel: menuBarViewModel
-        )
-        saveSessionWindow = showWindow(
-            existing: saveSessionWindow,
-            title: "Save Current Session",
-            size: NSSize(width: 920, height: 680),
-            rootView: view
-        )
+        showDashboard(menuBarViewModel: menuBarViewModel, section: .saveSession)
     }
 
     func showResumeSession(menuBarViewModel: MenuBarViewModel) {
-        let rootView: AnyView
-        if let snapshot = menuBarViewModel.lastSnapshot {
-            rootView = AnyView(
-                ResumeSessionSheet(
-                    viewModel: ResumeSessionViewModel(snapshot: snapshot),
-                    menuBarViewModel: menuBarViewModel
-                )
-            )
-        } else {
-            rootView = AnyView(
-                VStack(spacing: 12) {
-                    Image(systemName: "tray")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
-                    Text("No Checkpoint Saved")
-                        .font(.headline)
-                    Text("Save a current session first, then come back to resume it.")
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(24)
-                .frame(minWidth: 480, minHeight: 240)
-            )
-        }
-
-        resumeSessionWindow = showWindow(
-            existing: resumeSessionWindow,
-            title: "Resume Last Session",
-            size: NSSize(width: 760, height: 560),
-            rootView: rootView
-        )
+        showDashboard(menuBarViewModel: menuBarViewModel, section: .resumeSession)
     }
 
     func showSettings(menuBarViewModel: MenuBarViewModel) {
-        let view = SettingsView(menuBarViewModel: menuBarViewModel)
-        settingsWindow = showWindow(
-            existing: settingsWindow,
-            title: "Settings",
-            size: NSSize(width: 620, height: 620),
-            rootView: view
-        )
+        showDashboard(menuBarViewModel: menuBarViewModel, section: .settings)
     }
 
     private func showWindow<Content: View>(
@@ -98,6 +45,7 @@ final class AppWindowController {
     ) -> NSWindow {
         if let existing {
             existing.contentViewController = NSHostingController(rootView: rootView)
+            existing.title = title
             enforceMinimumSize(on: existing, targetSize: size)
             WindowCoordinator.activate(window: existing)
             return existing
@@ -114,6 +62,7 @@ final class AppWindowController {
         window.minSize = size
         window.setContentSize(size)
         window.center()
+        window.delegate = windowDelegate
         window.contentViewController = NSHostingController(rootView: rootView)
         WindowCoordinator.activate(window: window)
         return window
@@ -138,5 +87,11 @@ final class AppWindowController {
 
     func testOnlyEnforceMinimumSize(on window: NSWindow, targetSize: NSSize) {
         enforceMinimumSize(on: window, targetSize: targetSize)
+    }
+}
+
+private final class PrimaryWindowDelegate: NSObject, NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
     }
 }

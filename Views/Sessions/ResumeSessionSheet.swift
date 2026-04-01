@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct ResumeSessionSheet: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject var viewModel: ResumeSessionViewModel
     @ObservedObject var menuBarViewModel: MenuBarViewModel
+    var onClose: (() -> Void)? = nil
 
     @State private var running = false
 
@@ -45,7 +45,7 @@ struct ResumeSessionSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
-            .frame(minHeight: 260)
+            .frame(minHeight: 260, maxHeight: .infinity)
             .entulePanel()
 
             if let report = viewModel.lastReport {
@@ -84,7 +84,7 @@ struct ResumeSessionSheet: View {
             }
 
             HStack {
-                Button("Cancel") { dismiss() }
+                Button("Close") { closeView() }
                     .buttonStyle(EntuleSecondaryButtonStyle())
                     .disabled(running)
                 Spacer()
@@ -99,13 +99,7 @@ struct ResumeSessionSheet: View {
                 .disabled(running)
             }
         }
-        .padding()
-        .entuleWindowBackground()
-        .background(
-            WindowAccessor { window in
-                WindowCoordinator.activate(window: window)
-            }
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             if viewModel.needsConfirmation {
                 viewModel.showConfirmation = true
@@ -140,5 +134,9 @@ struct ResumeSessionSheet: View {
                 .stroke(tint.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func closeView() {
+        onClose?()
     }
 }

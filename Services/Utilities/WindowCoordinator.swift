@@ -48,9 +48,8 @@ enum WindowCoordinator {
         guard let window else { return }
         activateApp()
         window.level = .normal
-        window.collectionBehavior.insert(.moveToActiveSpace)
+        window.collectionBehavior = [.managed]
         window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
     }
 
     @MainActor
@@ -58,7 +57,6 @@ enum WindowCoordinator {
         activateApp()
         if let window = NSApp.windows.first(where: { $0.isVisible }) ?? NSApp.windows.first {
             window.makeKeyAndOrderFront(nil)
-            window.orderFrontRegardless()
         }
     }
 }

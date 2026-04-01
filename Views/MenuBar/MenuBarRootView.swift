@@ -7,7 +7,7 @@ struct MenuBarRootView: View {
         Group {
             Button("Open Entule") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    AppWindowController.shared.showDashboard(menuBarViewModel: viewModel)
+                    AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: viewModel.activeSection)
                 }
             }
 
@@ -19,13 +19,13 @@ struct MenuBarRootView: View {
                 onResume: {
                     viewModel.beginResumeSession()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        AppWindowController.shared.showResumeSession(menuBarViewModel: viewModel)
+                        AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .resumeSession)
                     }
                 },
                 onSave: {
                     viewModel.beginSaveSession()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        AppWindowController.shared.showSaveSession(menuBarViewModel: viewModel)
+                        AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .saveSession)
                     }
                 }
             )
@@ -39,14 +39,14 @@ struct MenuBarRootView: View {
             Button("Presets…") {
                 viewModel.openPresets()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    AppWindowController.shared.showPresets(menuBarViewModel: viewModel)
+                    AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .presets)
                 }
             }
 
             Button("Settings…") {
                 viewModel.openSettings()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    AppWindowController.shared.showSettings(menuBarViewModel: viewModel)
+                    AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .settings)
                 }
             }
 

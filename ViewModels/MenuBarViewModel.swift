@@ -5,6 +5,7 @@ final class MenuBarViewModel: ObservableObject {
     @Published private(set) var presets: [Preset] = []
     @Published private(set) var lastSnapshot: SessionSnapshot?
     @Published var statusLine: String = "Ready"
+    @Published var activeSection: AppSection = .home
 
     @Published private(set) var isDetecting = false
     @Published private(set) var isLaunching = false
@@ -32,21 +33,46 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func openPresets() {
+        activeSection = .presets
         statusLine = "Presets"
     }
 
     func openSettings() {
+        activeSection = .settings
         statusLine = "Settings"
     }
 
     func beginSaveSession() {
         guard !isBusy else { return }
+        activeSection = .saveSession
         statusLine = "Save session"
     }
 
     func beginResumeSession() {
         guard canResumeLastSession else { return }
+        activeSection = .resumeSession
         statusLine = "Resume session"
+    }
+
+    func showHome() {
+        activeSection = .home
+        statusLine = "Ready"
+    }
+
+    func navigate(to section: AppSection) {
+        activeSection = section
+        switch section {
+        case .home:
+            statusLine = "Ready"
+        case .saveSession:
+            statusLine = "Save session"
+        case .resumeSession:
+            statusLine = "Resume session"
+        case .presets:
+            statusLine = "Presets"
+        case .settings:
+            statusLine = "Settings"
+        }
     }
 
     func savePreset(_ preset: Preset) {

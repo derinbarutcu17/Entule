@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct SaveSessionSheet: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject var viewModel: SaveSessionViewModel
     @ObservedObject var menuBarViewModel: MenuBarViewModel
+    var onClose: (() -> Void)? = nil
 
     @State private var manualURL = ""
     @State private var confirmSaveWithZeroItems = false
@@ -83,11 +83,13 @@ struct SaveSessionSheet: View {
                         }
                         .scrollContentBackground(.hidden)
                         .background(Color.clear)
-                        .frame(minHeight: 320)
+                        .frame(minHeight: 320, maxHeight: .infinity)
                         .entulePanel()
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
+            .frame(maxHeight: .infinity, alignment: .top)
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("Manual Add")
@@ -126,7 +128,7 @@ struct SaveSessionSheet: View {
             }
 
             HStack {
-                Button("Cancel") { dismiss() }
+                Button("Close") { closeView() }
                     .buttonStyle(EntuleSecondaryButtonStyle())
                     .disabled(isSaving)
                 Spacer()
@@ -137,13 +139,7 @@ struct SaveSessionSheet: View {
                 .disabled(viewModel.isDetecting || isSaving)
             }
         }
-        .padding()
-        .entuleWindowBackground()
-        .background(
-            WindowAccessor { window in
-                WindowCoordinator.activate(window: window)
-            }
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             viewModel.isDetecting = true
             let result = await menuBarViewModel.detectCurrentSession()
@@ -177,7 +173,7 @@ struct SaveSessionSheet: View {
         guard !isSaving else { return }
         isSaving = true
         menuBarViewModel.saveSnapshot(viewModel.toSnapshot())
-        dismiss()
+        closeView()
     }
 
     private func binding(for id: UUID) -> Binding<SessionItem>? {
@@ -201,5 +197,9 @@ struct SaveSessionSheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .entulePanel()
+    }
+
+    private func closeView() {
+        onClose?()
     }
 }
