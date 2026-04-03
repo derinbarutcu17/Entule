@@ -52,14 +52,14 @@ enum HomeLayout {
                                  max: AppWindowMetrics.homePreviewMaxWidth)
         let previewHeight = tier == .compact ? AppWindowMetrics.homePreviewCompactHeight : AppWindowMetrics.homePreviewHeight
 
-        let saveX: CGFloat = tier == .compact ? 90 : 70
-        let saveY = tier == .wide ? height * 0.30 : tier == .medium ? height * 0.35 : height * 0.42
+        let saveX: CGFloat = tier == .compact ? 44 : 52
+        let saveY = tier == .wide ? height * 0.22 : tier == .medium ? height * 0.26 : height * 0.32
         let saveFrame = CGRect(x: saveX, y: saveY, width: saveSize, height: saveSize)
 
         let clusterGap = tier == .wide ? AppWindowMetrics.homeClusterGapWide : tier == .medium ? AppWindowMetrics.homeClusterGapMedium : AppWindowMetrics.homeClusterGapCompact
 
-        let resumeX = min(max(saveFrame.maxX + clusterGap, width * 0.52), usableWidth - resumeSize - previewWidth - AppWindowMetrics.homeClusterGapCompact)
-        let resumeY: CGFloat = tier == .compact ? 92 : 76
+        let resumeX = min(max(saveFrame.maxX + clusterGap, width * 0.48), usableWidth - resumeSize - previewWidth - AppWindowMetrics.homeClusterGapCompact)
+        let resumeY: CGFloat = tier == .compact ? 42 : 34
         let resumeFrame = CGRect(x: resumeX, y: resumeY, width: resumeSize, height: resumeSize)
 
         let previewFrame: CGRect
@@ -67,15 +67,15 @@ enum HomeLayout {
         switch tier {
         case .wide, .medium:
             let previewX = min(resumeFrame.maxX + (tier == .wide ? 22 : 18), usableWidth - previewWidth)
-            let previewY = resumeFrame.minY + (tier == .wide ? 54 : 48)
+            let previewY = resumeFrame.minY + (tier == .wide ? 42 : 38)
             previewFrame = CGRect(x: previewX, y: previewY, width: previewWidth, height: previewHeight)
 
             let inspectX = previewFrame.midX - inspectSize / 2
-            let inspectY = previewFrame.maxY + 24
+            let inspectY = previewFrame.maxY + 18
             inspectFrame = CGRect(x: inspectX, y: inspectY, width: inspectSize, height: inspectSize)
         case .compact:
             let previewX = min(resumeFrame.minX + 18, usableWidth - previewWidth)
-            let previewY = resumeFrame.maxY + 20
+            let previewY = resumeFrame.maxY + 16
             previewFrame = CGRect(x: previewX, y: previewY, width: previewWidth, height: previewHeight)
 
             let inspectX = min(previewFrame.maxX + 18, usableWidth - inspectSize)

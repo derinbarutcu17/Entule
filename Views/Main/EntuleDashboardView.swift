@@ -18,9 +18,11 @@ struct EntuleDashboardView: View {
 
                 ZStack(alignment: .bottomTrailing) {
                     shellContent(for: contentSize)
-                    floatingDock
-                        .padding(.trailing, AppWindowMetrics.spacingXS)
-                        .padding(.bottom, AppWindowMetrics.spacingXS)
+                    if appShellViewModel.activeSection != .home {
+                        floatingDock
+                            .padding(.trailing, AppWindowMetrics.spacingXS)
+                            .padding(.bottom, AppWindowMetrics.spacingXS)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
