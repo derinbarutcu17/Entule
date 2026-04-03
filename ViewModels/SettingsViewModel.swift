@@ -7,10 +7,10 @@ final class SettingsViewModel: ObservableObject {
     @Published var diagnosticsText: String = ""
     @Published var feedbackMessage: String = ""
 
-    private let menuBarViewModel: MenuBarViewModel
+    private let workspaceViewModel: WorkspaceViewModel
 
-    init(menuBarViewModel: MenuBarViewModel) {
-        self.menuBarViewModel = menuBarViewModel
+    init(workspaceViewModel: WorkspaceViewModel) {
+        self.workspaceViewModel = workspaceViewModel
         refreshDiagnostics()
     }
 
@@ -19,14 +19,14 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func refreshDiagnostics() {
-        menuBarViewModel.reload()
+        workspaceViewModel.reload()
 
         do {
             let stateURL = try FilePaths.stateFileURL()
             let legacyURL = try FilePaths.legacyStateFileURL()
 
             diagnosticsText = DiagnosticsSummaryBuilder.build(
-                model: menuBarViewModel.currentModel,
+                model: workspaceViewModel.currentModel,
                 stateFilePath: stateURL.path,
                 legacyStateExists: FileManager.default.fileExists(atPath: legacyURL.path),
                 supportedDetectors: DetectionCoordinator.supportedDetectorNames
@@ -61,13 +61,13 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func clearLastSnapshot() {
-        menuBarViewModel.clearLastSnapshot()
+        workspaceViewModel.clearLastSnapshot()
         refreshDiagnostics()
         feedbackMessage = "Cleared last snapshot"
     }
 
     func resetAllLocalState() {
-        let didReset = menuBarViewModel.resetAllLocalState()
+        let didReset = workspaceViewModel.resetAllLocalState()
         refreshDiagnostics()
         feedbackMessage = didReset ? "Reset local Entule data" : "Could not reset local data"
     }

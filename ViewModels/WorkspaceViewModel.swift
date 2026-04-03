@@ -1,11 +1,9 @@
 import Foundation
 
 @MainActor
-final class MenuBarViewModel: ObservableObject {
+final class WorkspaceViewModel: ObservableObject {
     @Published private(set) var presets: [Preset] = []
     @Published private(set) var lastSnapshot: SessionSnapshot?
-    @Published var statusLine: String = "Ready"
-    @Published var activeSection: AppSection = .home
 
     @Published private(set) var isDetecting = false
     @Published private(set) var isLaunching = false
@@ -32,54 +30,6 @@ final class MenuBarViewModel: ObservableObject {
         !isBusy && lastSnapshot != nil
     }
 
-    func openPresets() {
-        activeSection = .presets
-        statusLine = "Presets"
-    }
-
-    func openSettings() {
-        activeSection = .settings
-        statusLine = "Settings"
-    }
-
-    func beginSaveSession() {
-        guard !isBusy else { return }
-        activeSection = .saveSession
-        statusLine = "Save session"
-    }
-
-    func beginResumeSession() {
-        guard canResumeLastSession else { return }
-        statusLine = "Resuming snapshot…"
-    }
-
-    func inspectLastSnapshot() {
-        guard lastSnapshot != nil else { return }
-        activeSection = .resumeSession
-        statusLine = "Inspect checkpoint"
-    }
-
-    func showHome() {
-        activeSection = .home
-        statusLine = "Ready"
-    }
-
-    func navigate(to section: AppSection) {
-        activeSection = section
-        switch section {
-        case .home:
-            statusLine = "Ready"
-        case .saveSession:
-            statusLine = "Save session"
-        case .resumeSession:
-            statusLine = "Inspect checkpoint"
-        case .presets:
-            statusLine = "Presets"
-        case .settings:
-            statusLine = "Settings"
-        }
-    }
-
     func savePreset(_ preset: Preset) {
         var updated = appState.model
         if let idx = updated.presets.firstIndex(where: { $0.id == preset.id }) {
@@ -90,14 +40,12 @@ final class MenuBarViewModel: ObservableObject {
         appState.model = updated
         appState.save()
         reload()
-        statusLine = "Preset saved"
     }
 
     func deletePreset(id: UUID) {
         appState.model.presets.removeAll(where: { $0.id == id })
         appState.save()
         reload()
-        statusLine = "Preset deleted"
     }
 
     func saveSnapshot(_ snapshot: SessionSnapshot) {
@@ -108,7 +56,6 @@ final class MenuBarViewModel: ObservableObject {
         appState.model.lastSnapshot = snapshot
         appState.save()
         reload()
-        statusLine = "Saved \(snapshot.items.count) items"
     }
 
     func clearLastSnapshot() {
@@ -116,7 +63,6 @@ final class MenuBarViewModel: ObservableObject {
         appState.model.lastSnapshot = nil
         appState.save()
         reload()
-        statusLine = "Last snapshot cleared"
     }
 
     func resetAllLocalState() -> Bool {
@@ -125,11 +71,9 @@ final class MenuBarViewModel: ObservableObject {
         do {
             try appState.environment.store.resetState()
             reload()
-            statusLine = "Local data reset"
             return true
         } catch {
             appState.environment.logger.error("Reset state failed: \(error.localizedDescription)")
-            statusLine = "Reset failed"
             return false
         }
     }
@@ -140,7 +84,6 @@ final class MenuBarViewModel: ObservableObject {
         }
 
         isLaunching = true
-        statusLine = "Launching preset…"
         defer { isLaunching = false }
 
         let report = await appState.environment.launcher.launch(
@@ -149,7 +92,6 @@ final class MenuBarViewModel: ObservableObject {
             dryRun: false
         )
 
-        statusLine = "Preset \(preset.name): \(report.succeededCount) ok, \(report.failedCount) failed"
         return report
     }
 
@@ -157,7 +99,6 @@ final class MenuBarViewModel: ObservableObject {
         guard !isBusy, let snapshot = lastSnapshot else { return nil }
 
         isResuming = true
-        statusLine = "Resuming snapshot…"
         defer { isResuming = false }
 
         let report = await appState.environment.launcher.launch(
@@ -166,7 +107,6 @@ final class MenuBarViewModel: ObservableObject {
             dryRun: false
         )
 
-        statusLine = "Resume: \(report.succeededCount) ok, \(report.failedCount) failed"
         return report
     }
 
@@ -177,7 +117,6 @@ final class MenuBarViewModel: ObservableObject {
         }
 
         isDetecting = true
-        statusLine = "Detecting session…"
         defer { isDetecting = false }
 
         return await appState.environment.detectionCoordinator.detectAll()

@@ -7,7 +7,11 @@ struct EntuleApp: App {
 
     var body: some Scene {
         MenuBarExtra("Entule", systemImage: "checklist") {
-            MenuBarRootView(viewModel: container.menuBarViewModel)
+            MenuBarRootView(
+                workspaceViewModel: container.workspaceViewModel,
+                appShellViewModel: container.appShellViewModel,
+                appShellController: container.appShellController
+            )
         }
         .menuBarExtraStyle(.menu)
     }
@@ -15,17 +19,15 @@ struct EntuleApp: App {
 
 final class EntuleAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        WindowCoordinator.enterMenuBarModeIfPossible()
+        let controller = AppContainer.shared.appShellController
+        controller.hideToMenuBarIfPossible()
         DispatchQueue.main.async {
-            let viewModel = AppContainer.shared.menuBarViewModel
-            AppWindowController.shared.showDashboard(menuBarViewModel: viewModel)
+            controller.showMainWindow(section: nil)
         }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        guard !flag else { return true }
-        let viewModel = AppContainer.shared.menuBarViewModel
-        AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: viewModel.activeSection)
+        AppContainer.shared.appShellController.handleAppReopen()
         return true
     }
 }
@@ -35,12 +37,25 @@ final class AppContainer: ObservableObject {
     static let shared = AppContainer()
 
     let appState: AppState
-    let menuBarViewModel: MenuBarViewModel
+    let workspaceViewModel: WorkspaceViewModel
+    let appShellViewModel: AppShellViewModel
+    let appShellController: AppShellController
 
     init() {
         let appState = AppState()
         self.appState = appState
-        self.menuBarViewModel = MenuBarViewModel(appState: appState)
-        self.menuBarViewModel.reload()
+        
+        let workspaceViewModel = WorkspaceViewModel(appState: appState)
+        self.workspaceViewModel = workspaceViewModel
+        
+        let appShellViewModel = AppShellViewModel()
+        self.appShellViewModel = appShellViewModel
+        
+        self.appShellController = AppShellController(
+            appShellViewModel: appShellViewModel,
+            workspaceViewModel: workspaceViewModel
+        )
+        
+        self.workspaceViewModel.reload()
     }
 }

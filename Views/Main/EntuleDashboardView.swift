@@ -1,30 +1,33 @@
 import SwiftUI
 
 struct EntuleDashboardView: View {
-    @ObservedObject var menuBarViewModel: MenuBarViewModel
+    @ObservedObject var appShellViewModel: AppShellViewModel
+    @ObservedObject var workspaceViewModel: WorkspaceViewModel
     @State private var hoveredSection: AppSection?
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: AppWindowMetrics.shellSpacing) {
             sidebar
 
             Divider()
                 .overlay(EntuleTheme.lineSoft)
 
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: AppWindowMetrics.sectionSpacing) {
                 header
                 activeSectionView
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(20)
-        .frame(minWidth: 980, minHeight: 660)
+        .padding(.top, AppWindowMetrics.titlebarTopInset)
+        .padding(.horizontal, AppWindowMetrics.shellPadding)
+        .padding(.bottom, AppWindowMetrics.shellPadding)
+        .frame(width: AppWindowMetrics.primaryWindowWidth, height: AppWindowMetrics.primaryWindowHeight)
         .entuleWindowBackground()
     }
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.sectionSpacing) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("ENTULE")
                     .font(.system(size: 11, weight: .semibold))
@@ -40,38 +43,15 @@ struct EntuleDashboardView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(AppSection.allCases) { section in
-                    Button {
-                        menuBarViewModel.navigate(to: section)
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: section.symbolName)
-                                .frame(width: 18)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(section.title)
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text(section.subtitle)
-                                    .font(.system(size: 11))
-                                    .lineLimit(1)
-                                    .opacity(0.78)
-                            }
-                            Spacer()
+                    SidebarNavItem(
+                        section: section,
+                        isActive: appShellViewModel.activeSection == section,
+                        isHovered: hoveredSection == section,
+                        action: { appShellViewModel.navigate(to: section) },
+                        onHover: { isHovering in
+                            hoveredSection = isHovering ? section : (hoveredSection == section ? nil : hoveredSection)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(backgroundFill(for: section))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(borderColor(for: section), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(menuBarViewModel.activeSection == section ? EntuleTheme.moon : EntuleTheme.moonDim)
-                    .onHover { isHovering in
-                        hoveredSection = isHovering ? section : (hoveredSection == section ? nil : hoveredSection)
-                    }
+                    )
                 }
             }
 
@@ -81,26 +61,26 @@ struct EntuleDashboardView: View {
                 Text("Status")
                     .font(.headline)
                     .foregroundStyle(EntuleTheme.moon)
-                Text(menuBarViewModel.statusLine)
+                Text(appShellViewModel.statusLine)
                     .font(.system(size: 13))
                     .foregroundStyle(EntuleTheme.moonDim)
 
                 HStack(spacing: 10) {
-                    statChip(label: "Presets", value: menuBarViewModel.presets.count)
-                    statChip(label: "Saved", value: menuBarViewModel.lastSnapshot?.items.count ?? 0)
+                    statChip(label: "Presets", value: workspaceViewModel.presets.count)
+                    statChip(label: "Saved", value: workspaceViewModel.lastSnapshot?.items.count ?? 0)
                 }
             }
             .entulePanel()
         }
-        .frame(minWidth: 250, maxWidth: 250, maxHeight: .infinity, alignment: .topLeading)
+        .frame(minWidth: AppWindowMetrics.sidebarWidth, maxWidth: AppWindowMetrics.sidebarWidth, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(menuBarViewModel.activeSection.title)
+            Text(appShellViewModel.activeSection.title)
                 .font(.system(size: 32, weight: .semibold, design: .rounded))
                 .foregroundStyle(EntuleTheme.moon)
-            Text(menuBarViewModel.activeSection.subtitle)
+            Text(appShellViewModel.activeSection.subtitle)
                 .font(.system(size: 14))
                 .foregroundStyle(EntuleTheme.moonDim)
         }
@@ -108,21 +88,21 @@ struct EntuleDashboardView: View {
 
     @ViewBuilder
     private var activeSectionView: some View {
-        switch menuBarViewModel.activeSection {
+        switch appShellViewModel.activeSection {
         case .home:
             homeSection
         case .saveSession:
             SaveSessionSheet(
                 viewModel: SaveSessionViewModel(),
-                menuBarViewModel: menuBarViewModel,
-                onClose: { menuBarViewModel.showHome() }
+                workspaceViewModel: workspaceViewModel,
+                onClose: { appShellViewModel.showHome() }
             )
-        case .resumeSession:
-            if let snapshot = menuBarViewModel.lastSnapshot {
+        case .inspectCheckpoint:
+            if let snapshot = workspaceViewModel.lastSnapshot {
                 ResumeSessionSheet(
                     viewModel: ResumeSessionViewModel(snapshot: snapshot),
-                    menuBarViewModel: menuBarViewModel,
-                    onClose: { menuBarViewModel.showHome() }
+                    workspaceViewModel: workspaceViewModel,
+                    onClose: { appShellViewModel.showHome() }
                 )
             } else {
                 emptyState(
@@ -131,54 +111,36 @@ struct EntuleDashboardView: View {
                 )
             }
         case .presets:
-            PresetManagementView(menuBarViewModel: menuBarViewModel)
+            PresetManagementView(workspaceViewModel: workspaceViewModel)
         case .settings:
-            SettingsView(menuBarViewModel: menuBarViewModel)
+            SettingsView(workspaceViewModel: workspaceViewModel)
         }
     }
 
     private var homeSection: some View {
-        VStack(spacing: 18) {
-            HStack(spacing: 18) {
-                actionPanel(
-                    title: "Save Current Session",
-                    detail: "Detect open work, review it, and save a checkpoint.",
-                    actionTitle: "Save Now",
-                    isPrimary: true,
-                    isDisabled: menuBarViewModel.isBusy
-                ) {
-                    menuBarViewModel.beginSaveSession()
-                }
-
-                actionPanel(
-                    title: "Resume Last Session",
-                    detail: "Reopen your latest checkpoint with the saved note and resources.",
-                    actionTitle: "Resume",
-                    isPrimary: false,
-                    isDisabled: !menuBarViewModel.canResumeLastSession
-                ) {
-                    Task { _ = await menuBarViewModel.resumeLastSnapshot() }
-                }
-
-                actionPanel(
-                    title: "Manage Presets",
-                    detail: "Create reusable launch sets for the work you repeat often.",
-                    actionTitle: "Open Presets",
-                    isPrimary: false,
-                    isDisabled: false
-                ) {
-                    menuBarViewModel.openPresets()
+        VStack(spacing: AppWindowMetrics.sectionSpacing) {
+            HStack(spacing: AppWindowMetrics.sectionSpacing) {
+                ForEach(homeActionCards) { card in
+                    ActionCardButton(
+                        title: card.title,
+                        detail: card.detail,
+                        actionTitle: card.actionTitle,
+                        isPrimary: card.isPrimary,
+                        isDisabled: card.isDisabled,
+                        action: card.action,
+                        height: AppWindowMetrics.homeActionCardHeight
+                    )
                 }
             }
             .frame(maxWidth: .infinity)
 
-            HStack(spacing: 18) {
+            HStack(spacing: AppWindowMetrics.sectionSpacing) {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Last Checkpoint")
                         .font(.headline)
                         .foregroundStyle(EntuleTheme.moon)
 
-                    if let snapshot = menuBarViewModel.lastSnapshot {
+                    if let snapshot = workspaceViewModel.lastSnapshot {
                         checkpointStatRow(label: "Created", value: snapshot.createdAt.formatted(date: .abbreviated, time: .shortened))
                         checkpointStatRow(label: "Items", value: "\(snapshot.items.count)")
                         checkpointStatRow(label: "Shortcut", value: snapshot.shortcutName ?? "None")
@@ -192,13 +154,13 @@ struct EntuleDashboardView: View {
 
                         HStack(spacing: 10) {
                             Button("Resume") {
-                                Task { _ = await menuBarViewModel.resumeLastSnapshot() }
+                                Task { _ = await workspaceViewModel.resumeLastSnapshot() }
                             }
                             .buttonStyle(EntulePrimaryButtonStyle())
-                            .disabled(!menuBarViewModel.canResumeLastSession)
+                            .disabled(!workspaceViewModel.canResumeLastSession)
 
                             Button("Inspect") {
-                                menuBarViewModel.inspectLastSnapshot()
+                                appShellViewModel.inspectCheckpoint()
                             }
                             .buttonStyle(EntuleSecondaryButtonStyle())
                         }
@@ -207,7 +169,7 @@ struct EntuleDashboardView: View {
                         emptyStateInline("No checkpoint saved yet.")
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: AppWindowMetrics.homeLowerPanelHeight, maxHeight: AppWindowMetrics.homeLowerPanelHeight, alignment: .topLeading)
                 .entulePanel()
 
                 VStack(alignment: .leading, spacing: 14) {
@@ -215,10 +177,10 @@ struct EntuleDashboardView: View {
                         .font(.headline)
                         .foregroundStyle(EntuleTheme.moon)
 
-                    if menuBarViewModel.presets.isEmpty {
+                    if workspaceViewModel.presets.isEmpty {
                         emptyStateInline("No presets yet. Create one to open apps, folders, files, and URLs in one click.")
                     } else {
-                        ForEach(menuBarViewModel.presets.prefix(5)) { preset in
+                        ForEach(workspaceViewModel.presets.prefix(5)) { preset in
                             HStack(alignment: .center, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(preset.name)
@@ -229,89 +191,67 @@ struct EntuleDashboardView: View {
                                 }
                                 Spacer()
                                 Button("Launch") {
-                                    Task { await menuBarViewModel.launchPreset(preset) }
+                                    Task { await workspaceViewModel.launchPreset(preset) }
                                 }
                                 .buttonStyle(EntuleSecondaryButtonStyle())
-                                .disabled(menuBarViewModel.isBusy)
+                                .disabled(workspaceViewModel.isBusy)
                             }
-                            if preset.id != menuBarViewModel.presets.prefix(5).last?.id {
+                            if preset.id != workspaceViewModel.presets.prefix(5).last?.id {
                                 Divider().overlay(EntuleTheme.lineSoft)
                             }
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: AppWindowMetrics.homeLowerPanelHeight, maxHeight: AppWindowMetrics.homeLowerPanelHeight, alignment: .topLeading)
                 .entulePanel()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func actionPanel(
-        title: String,
-        detail: String,
-        actionTitle: String,
-        isPrimary: Bool,
-        isDisabled: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(EntuleTheme.moon)
-
-                Text(detail)
-                    .font(.system(size: 13))
-                    .foregroundStyle(EntuleTheme.moonDim)
-
-                Spacer(minLength: 0)
-
-                HStack {
-                    if isPrimary {
-                        Text(actionTitle)
-                            .font(.system(size: 13, weight: .semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(EntuleTheme.primaryButtonGradient)
-                            .foregroundStyle(Color.black.opacity(0.88))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    } else {
-                        Text(actionTitle)
-                            .font(.system(size: 13, weight: .medium))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(Color.white.opacity(0.05))
-                            .foregroundStyle(EntuleTheme.moon)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(EntuleTheme.lineWarm, lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    Spacer()
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 150, maxHeight: .infinity, alignment: .topLeading)
-            .entulePanel()
-            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
+    private var homeActionCards: [HomeActionCard] {
+        [
+            HomeActionCard(
+                id: "save-current-session",
+                title: "Save Current Session",
+                detail: "Detect open work, review it, and save a checkpoint.",
+                actionTitle: "Save Now",
+                isPrimary: true,
+                isDisabled: workspaceViewModel.isBusy,
+                action: { appShellViewModel.showSaveSession() }
+            ),
+            HomeActionCard(
+                id: "resume-last-session",
+                title: "Resume Last Session",
+                detail: "Reopen your latest checkpoint with the saved note and resources.",
+                actionTitle: "Resume",
+                isPrimary: false,
+                isDisabled: !workspaceViewModel.canResumeLastSession,
+                action: { Task { _ = await workspaceViewModel.resumeLastSnapshot() } }
+            ),
+            HomeActionCard(
+                id: "manage-presets",
+                title: "Manage Presets",
+                detail: "Create reusable launch sets for the work you repeat often.",
+                actionTitle: "Open Presets",
+                isPrimary: false,
+                isDisabled: false,
+                action: { appShellViewModel.openPresets() }
+            )
+        ]
     }
 
     private func checkpointStatRow(label: String, value: String) -> some View {
-        HStack {
+        HStack(spacing: 8) {
             Text(label)
                 .foregroundStyle(EntuleTheme.moonDim)
-            Spacer()
+            Spacer(minLength: 8)
             Text(value)
+                .lineLimit(1)
+                .truncationMode(.middle)
                 .foregroundStyle(EntuleTheme.moon)
+            CopyValueButton(value: value, label: label)
         }
         .font(.system(size: 13))
         .padding(.horizontal, 12)
@@ -362,24 +302,14 @@ struct EntuleDashboardView: View {
             .foregroundStyle(EntuleTheme.moonDim)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
+}
 
-    private func backgroundFill(for section: AppSection) -> Color {
-        if menuBarViewModel.activeSection == section {
-            return Color.white.opacity(0.08)
-        }
-        if hoveredSection == section {
-            return Color.white.opacity(0.045)
-        }
-        return .clear
-    }
-
-    private func borderColor(for section: AppSection) -> Color {
-        if menuBarViewModel.activeSection == section {
-            return EntuleTheme.lineWarm
-        }
-        if hoveredSection == section {
-            return EntuleTheme.lineSoft
-        }
-        return .clear
-    }
+private struct HomeActionCard: Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    let actionTitle: String
+    let isPrimary: Bool
+    let isDisabled: Bool
+    let action: () -> Void
 }

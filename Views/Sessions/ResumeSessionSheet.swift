@@ -2,13 +2,14 @@ import SwiftUI
 
 struct ResumeSessionSheet: View {
     @StateObject var viewModel: ResumeSessionViewModel
-    @ObservedObject var menuBarViewModel: MenuBarViewModel
+    @ObservedObject var workspaceViewModel: WorkspaceViewModel
     var onClose: (() -> Void)? = nil
 
     @State private var running = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        AppPaneContainer {
+            VStack(alignment: .leading, spacing: AppWindowMetrics.sectionSpacing) {
             Text("Created \(viewModel.snapshot.createdAt.formatted()) • \(viewModel.snapshot.items.count) items")
                 .font(.caption)
                 .foregroundStyle(EntuleTheme.moonDim)
@@ -25,22 +26,25 @@ struct ResumeSessionSheet: View {
             }
 
             List(viewModel.snapshot.items) { item in
-                HStack {
+                HStack(spacing: 8) {
                     Text(item.kind.rawValue.uppercased())
                         .font(.caption)
                         .frame(width: 60, alignment: .leading)
                         .foregroundStyle(EntuleTheme.moonDim)
                     Text(item.displayName)
                         .foregroundStyle(EntuleTheme.moon)
-                    Spacer()
+                    Spacer(minLength: 8)
                     Text(item.value)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                         .foregroundStyle(EntuleTheme.moonDim)
+                    CopyValueButton(value: item.value, label: item.displayName)
                 }
                 .listRowBackground(Color.clear)
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
-            .frame(minHeight: 220, maxHeight: .infinity)
+            .frame(height: AppWindowMetrics.resumeContentHeight)
             .entulePanel()
 
             if let report = viewModel.lastReport {
@@ -77,24 +81,19 @@ struct ResumeSessionSheet: View {
                 }
                 .entulePanel()
             }
-
-            HStack {
-                Button("Close") { closeView() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                    .disabled(running)
-                Spacer()
-                Button(running ? "Resuming…" : "Resume") {
-                    Task {
-                        running = true
-                        viewModel.lastReport = await menuBarViewModel.resumeLastSnapshot()
-                        running = false
-                    }
-                }
-                .buttonStyle(EntulePrimaryButtonStyle())
-                .disabled(running)
             }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        } toolbar: {
+            Button("Close") { closeView() }
+                .buttonStyle(EntuleSecondaryButtonStyle())
+                .disabled(running)
+            Spacer()
+            Button(running ? "Resuming…" : "Resume") {
+                Task { await runResume() }
+            }
+            .buttonStyle(EntulePrimaryButtonStyle())
+            .disabled(running)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             if viewModel.needsConfirmation {
                 viewModel.showConfirmation = true
@@ -103,13 +102,16 @@ struct ResumeSessionSheet: View {
         .alert("Resume \(viewModel.snapshot.items.count) items?", isPresented: $viewModel.showConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Resume") {
-                Task {
-                    running = true
-                    viewModel.lastReport = await menuBarViewModel.resumeLastSnapshot()
-                    running = false
-                }
+                Task { await runResume() }
             }
         }
+    }
+
+    private func runResume() async {
+        guard !running else { return }
+        running = true
+        defer { running = false }
+        viewModel.lastReport = await workspaceViewModel.resumeLastSnapshot()
     }
 
     private func metricPill(_ label: String, value: Int, tint: Color) -> some View {

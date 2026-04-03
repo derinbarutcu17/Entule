@@ -19,8 +19,14 @@ let package = Package(
                 "Resources",
                 "dist",
                 "scripts",
-                ".build"
+                ".build",
+                "Tests"
             ]
+        ),
+        .testTarget(
+            name: "EntuleTests",
+            dependencies: ["Entule"],
+            path: "Tests"
         )
     ]
 )

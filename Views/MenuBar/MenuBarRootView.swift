@@ -1,55 +1,46 @@
 import SwiftUI
 
 struct MenuBarRootView: View {
-    @ObservedObject var viewModel: MenuBarViewModel
+    @ObservedObject var workspaceViewModel: WorkspaceViewModel
+    @ObservedObject var appShellViewModel: AppShellViewModel
+    let appShellController: AppShellController
 
     var body: some View {
         Group {
             Button("Open Entule") {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: viewModel.activeSection)
-                }
+                appShellController.showMainWindow(section: appShellViewModel.activeSection)
             }
 
             Divider()
 
             SessionActionsView(
-                canResume: viewModel.canResumeLastSession,
-                isBusy: viewModel.isBusy,
+                canResume: workspaceViewModel.canResumeLastSession,
+                isBusy: workspaceViewModel.isBusy,
                 onResume: {
-                    Task { _ = await viewModel.resumeLastSnapshot() }
+                    Task { _ = await workspaceViewModel.resumeLastSnapshot() }
                 },
                 onSave: {
-                    viewModel.beginSaveSession()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .saveSession)
-                    }
+                    appShellController.showMainWindow(section: .saveSession)
                 }
             )
 
-            PresetListView(presets: viewModel.presets, isBusy: viewModel.isBusy) { preset in
-                Task { await viewModel.launchPreset(preset) }
+            PresetListView(presets: workspaceViewModel.presets, isBusy: workspaceViewModel.isBusy) { preset in
+                Task { await workspaceViewModel.launchPreset(preset) }
             }
 
             Divider()
 
             Button("Presets…") {
-                viewModel.openPresets()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .presets)
-                }
+                appShellController.showMainWindow(section: .presets)
             }
 
             Button("Settings…") {
-                viewModel.openSettings()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    AppWindowController.shared.showDashboard(menuBarViewModel: viewModel, section: .settings)
-                }
+                appShellController.showMainWindow(section: .settings)
             }
 
             Divider()
 
-            Text(viewModel.statusLine)
+            Text(appShellViewModel.statusLine)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SaveSessionSheet: View {
     @StateObject var viewModel: SaveSessionViewModel
-    @ObservedObject var menuBarViewModel: MenuBarViewModel
+    @ObservedObject var workspaceViewModel: WorkspaceViewModel
     var onClose: (() -> Void)? = nil
 
     @State private var manualURL = ""
@@ -14,126 +14,155 @@ struct SaveSessionSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(summaryLine)
-                .font(.caption)
-                .foregroundStyle(EntuleTheme.moonDim)
+        AppPaneContainer {
+            VStack(alignment: .leading, spacing: AppWindowMetrics.sectionSpacing) {
+                Text(summaryLine)
+                    .font(.caption)
+                    .foregroundStyle(EntuleTheme.moonDim)
 
-            HStack(spacing: 10) {
-                Button("Select All") { viewModel.selectAll() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                Button("Deselect All") { viewModel.deselectAll() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                Spacer()
-                if viewModel.isDetecting { ProgressView() }
-            }
-            .disabled(viewModel.isDetecting || isSaving)
-
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 12) {
-                    if !viewModel.detectorStatusLines.isEmpty {
-                        statusPanel(title: "Detector Status", rows: viewModel.detectorStatusLines, tint: EntuleTheme.moonDim)
-                    }
-
-                    if !viewModel.detectionWarnings.isEmpty {
-                        statusPanel(title: "Detection Warnings", rows: viewModel.detectionWarnings, tint: EntuleTheme.amber)
-                    }
-
-                    if let inputError = viewModel.inputErrorMessage {
-                        Text(inputError)
-                            .font(.caption)
-                            .foregroundStyle(EntuleTheme.danger)
-                    }
+                HStack(spacing: 10) {
+                    Button("Select All") { viewModel.selectAll() }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    Button("Deselect All") { viewModel.deselectAll() }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    Spacer()
+                    if viewModel.isDetecting { ProgressView() }
                 }
-                .frame(width: 220)
+                .disabled(viewModel.isDetecting || isSaving)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    if viewModel.items.isEmpty && !viewModel.isDetecting {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("No Session Items Found")
-                                .font(.headline)
-                                .foregroundStyle(EntuleTheme.moon)
-                            Text("Add URLs or use Add App, Add File, or Add Folder to build the checkpoint manually.")
-                                .font(.caption)
-                                .foregroundStyle(EntuleTheme.moonDim)
+                HStack(alignment: .top, spacing: AppWindowMetrics.sectionSpacing) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Detection")
+                            .font(.headline)
+                            .foregroundStyle(EntuleTheme.moon)
+
+                        if !viewModel.detectorStatusLines.isEmpty {
+                            statusPanel(title: "Detector Status", rows: viewModel.detectorStatusLines, tint: EntuleTheme.moonDim)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .entulePanel()
-                    } else {
-                        List {
-                            ForEach(SessionItemKind.allCases, id: \.self) { kind in
-                                if let indexList = groupedItems[kind], !indexList.isEmpty {
-                                    Section(kind.rawValue.uppercased()) {
-                                        ForEach(indexList) { sectionItem in
-                                            if let binding = binding(for: sectionItem.id) {
-                                                SessionItemRow(item: binding) {
-                                                    viewModel.removeItem(sectionItem)
+
+                        if !viewModel.detectionWarnings.isEmpty {
+                            statusPanel(title: "Detection Warnings", rows: viewModel.detectionWarnings, tint: EntuleTheme.amber)
+                        }
+
+                        if let inputError = viewModel.inputErrorMessage {
+                            Text(inputError)
+                                .font(.caption)
+                                .foregroundStyle(EntuleTheme.danger)
+                        }
+                    }
+                    .frame(width: AppWindowMetrics.saveDetectionColumnWidth)
+                    .frame(
+                        minHeight: AppWindowMetrics.saveContentHeight,
+                        maxHeight: AppWindowMetrics.saveContentHeight,
+                        alignment: .topLeading
+                    )
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Session Items")
+                            .font(.headline)
+                            .foregroundStyle(EntuleTheme.moon)
+
+                        if viewModel.items.isEmpty && !viewModel.isDetecting {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("No Session Items Found")
+                                    .font(.headline)
+                                    .foregroundStyle(EntuleTheme.moon)
+                                Text("Add URLs or use Add App, Add File, or Add Folder to build the checkpoint manually.")
+                                    .font(.caption)
+                                    .foregroundStyle(EntuleTheme.moonDim)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .entulePanel()
+                        } else {
+                            List {
+                                ForEach(SessionItemKind.allCases, id: \.self) { kind in
+                                    if let indexList = groupedItems[kind], !indexList.isEmpty {
+                                        Section(kind.rawValue.uppercased()) {
+                                            ForEach(indexList) { sectionItem in
+                                                if let binding = binding(for: sectionItem.id) {
+                                                    SessionItemRow(item: binding) {
+                                                        viewModel.removeItem(sectionItem)
+                                                    }
+                                                    .listRowBackground(Color.clear)
                                                 }
-                                                .listRowBackground(Color.clear)
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .frame(minHeight: 240, maxHeight: .infinity)
-                        .entulePanel()
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
-
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Button("Add App…") { viewModel.addManualAppsFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Button("Add File…") { viewModel.addManualFilesFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Button("Add Folder…") { viewModel.addManualFoldersFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Spacer()
-                }
-
-                HStack {
-                    TextField("Add URL", text: $manualURL)
-                        .textFieldStyle(.roundedBorder)
-                    Button("Add URL") {
-                        if viewModel.addManualURL(raw: manualURL) {
-                            manualURL = ""
+                            .scrollContentBackground(.hidden)
+                            .background(Color.clear)
+                            .frame(height: AppWindowMetrics.saveContentHeight)
+                            .entulePanel()
                         }
                     }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: AppWindowMetrics.saveContentHeight,
+                        maxHeight: AppWindowMetrics.saveContentHeight,
+                        alignment: .topLeading
+                    )
                 }
-            }
-            .disabled(viewModel.isDetecting || isSaving)
-            .entulePanel()
+                .frame(height: AppWindowMetrics.saveContentHeight, alignment: .top)
 
-            HStack(spacing: 12) {
-                TextField("Note", text: $viewModel.note)
-                    .textFieldStyle(.roundedBorder)
-                TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                    .textFieldStyle(.roundedBorder)
-            }
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Manual Add")
+                        .font(.headline)
+                        .foregroundStyle(EntuleTheme.moon)
 
-            HStack {
-                Button("Close") { closeView() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                    .disabled(isSaving)
-                Spacer()
-                Button(viewModel.isDetecting ? "Detecting…" : (isSaving ? "Saving…" : "Save Checkpoint")) {
-                    saveSnapshotWithChecks()
+                    HStack {
+                        Button("Add App…") { viewModel.addManualAppsFromPicker() }
+                            .buttonStyle(EntuleSecondaryButtonStyle())
+                        Button("Add File…") { viewModel.addManualFilesFromPicker() }
+                            .buttonStyle(EntuleSecondaryButtonStyle())
+                        Button("Add Folder…") { viewModel.addManualFoldersFromPicker() }
+                            .buttonStyle(EntuleSecondaryButtonStyle())
+                        Spacer()
+                    }
+
+                    HStack {
+                        TextField("Add URL", text: $manualURL)
+                            .textFieldStyle(.roundedBorder)
+                        Button("Add URL") {
+                            if viewModel.addManualURL(raw: manualURL) {
+                                manualURL = ""
+                            }
+                        }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    }
                 }
-                .buttonStyle(EntulePrimaryButtonStyle())
                 .disabled(viewModel.isDetecting || isSaving)
+                .entulePanel()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Save Details")
+                        .font(.headline)
+                        .foregroundStyle(EntuleTheme.moon)
+
+                    HStack(spacing: 12) {
+                        TextField("Note", text: $viewModel.note)
+                            .textFieldStyle(.roundedBorder)
+                        TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+                .entulePanel()
+
             }
+        } toolbar: {
+            Button("Close") { closeView() }
+                .buttonStyle(EntuleSecondaryButtonStyle())
+                .disabled(isSaving)
+            Spacer()
+            Button(viewModel.isDetecting ? "Detecting…" : (isSaving ? "Saving…" : "Save Checkpoint")) {
+                saveSnapshotWithChecks()
+            }
+            .buttonStyle(EntulePrimaryButtonStyle())
+            .disabled(viewModel.isDetecting || isSaving)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             viewModel.isDetecting = true
-            let result = await menuBarViewModel.detectCurrentSession()
+            let result = await workspaceViewModel.detectCurrentSession()
             viewModel.loadDetectionResult(result)
             viewModel.isDetecting = false
         }
@@ -163,7 +192,7 @@ struct SaveSessionSheet: View {
     private func persistAndClose() {
         guard !isSaving else { return }
         isSaving = true
-        menuBarViewModel.saveSnapshot(viewModel.toSnapshot())
+        workspaceViewModel.saveSnapshot(viewModel.toSnapshot())
         closeView()
     }
 
