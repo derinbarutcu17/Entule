@@ -13,86 +13,86 @@ struct SettingsView: View {
     var body: some View {
         AppPaneContainer {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Permissions")
-                            .font(.headline)
-                            .foregroundStyle(EntuleTheme.moon)
+                            .font(EntuleTypography.font(18, weight: .semibold))
+                            .foregroundStyle(EntuleTheme.ink)
 
                         Toggle("Show automation hint", isOn: $viewModel.showPermissionsHint)
-                            .foregroundStyle(EntuleTheme.moon)
+                            .foregroundStyle(EntuleTheme.ink)
 
                         if viewModel.showPermissionsHint {
                             Text(viewModel.permissionsHint)
-                                .font(.caption)
-                                .foregroundStyle(EntuleTheme.moonDim)
+                                .font(EntuleTypography.font(13))
+                                .foregroundStyle(EntuleTheme.inkDim)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .entulePanel()
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Testing & Storage")
-                            .font(.headline)
-                            .foregroundStyle(EntuleTheme.moon)
+                            .font(EntuleTypography.font(18, weight: .semibold))
+                            .foregroundStyle(EntuleTheme.ink)
 
-                        HStack {
-                            Button("Reveal Entule Data Folder") {
-                                viewModel.revealDataFolder()
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: AppWindowMetrics.spacingS) {
+                                storageButtons
+                                Spacer(minLength: 0)
                             }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
-                            Button("Reveal state.json") {
-                                viewModel.revealStateFile()
+                            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                                storageButtons
                             }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
                         }
 
-                        HStack {
-                            Button("Clear Last Snapshot") {
-                                confirmClearSnapshot = true
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: AppWindowMetrics.spacingS) {
+                                resetButtons
+                                Spacer(minLength: 0)
                             }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
-                            Button("Reset All Local Data", role: .destructive) {
-                                confirmResetAllState = true
+                            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                                resetButtons
                             }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
                         }
 
                         if !viewModel.feedbackMessage.isEmpty {
                             Text(viewModel.feedbackMessage)
-                                .font(.caption)
-                                .foregroundStyle(EntuleTheme.moonDim)
+                                .font(EntuleTypography.font(12))
+                                .foregroundStyle(EntuleTheme.inkDim)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .entulePanel()
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Diagnostics")
-                            .font(.headline)
-                            .foregroundStyle(EntuleTheme.moon)
+                            .font(EntuleTypography.font(18, weight: .semibold))
+                            .foregroundStyle(EntuleTheme.ink)
 
                         Text(viewModel.diagnosticsText)
                             .font(.system(.caption, design: .monospaced))
                             .foregroundStyle(EntuleTheme.ink)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(minHeight: AppWindowMetrics.settingsDiagnosticsHeight, alignment: .topLeading)
+                            .frame(minHeight: AppWindowMetrics.diagnosticsMinHeight, alignment: .topLeading)
                             .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                        HStack {
-                            Button("Refresh Diagnostics") {
-                                viewModel.refreshDiagnostics()
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: AppWindowMetrics.spacingS) {
+                                diagnosticsButtons
+                                Spacer(minLength: 0)
                             }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
-                            Button("Copy Diagnostics") {
-                                viewModel.copyDiagnostics()
+                            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                                diagnosticsButtons
                             }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
                         }
                     }
                     .entulePanel()
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .frame(height: AppWindowMetrics.settingsScrollHeight)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .alert("Clear last snapshot?", isPresented: $confirmClearSnapshot) {
             Button("Cancel", role: .cancel) {}
@@ -109,6 +109,45 @@ struct SettingsView: View {
             }
         } message: {
             Text("This removes presets and snapshots from local storage, then recreates a clean empty state.")
+        }
+    }
+
+    private var storageButtons: some View {
+        Group {
+            Button("Reveal Entule Data Folder") {
+                viewModel.revealDataFolder()
+            }
+            .buttonStyle(EntuleSecondaryButtonStyle())
+            Button("Reveal state.json") {
+                viewModel.revealStateFile()
+            }
+            .buttonStyle(EntuleSecondaryButtonStyle())
+        }
+    }
+
+    private var resetButtons: some View {
+        Group {
+            Button("Clear Last Snapshot") {
+                confirmClearSnapshot = true
+            }
+            .buttonStyle(EntuleSecondaryButtonStyle())
+            Button("Reset All Local Data", role: .destructive) {
+                confirmResetAllState = true
+            }
+            .buttonStyle(EntuleSecondaryButtonStyle())
+        }
+    }
+
+    private var diagnosticsButtons: some View {
+        Group {
+            Button("Refresh Diagnostics") {
+                viewModel.refreshDiagnostics()
+            }
+            .buttonStyle(EntuleSecondaryButtonStyle())
+            Button("Copy Diagnostics") {
+                viewModel.copyDiagnostics()
+            }
+            .buttonStyle(EntuleSecondaryButtonStyle())
         }
     }
 }

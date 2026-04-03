@@ -75,13 +75,13 @@ struct EntuleWindowBackground: ViewModifier {
 struct EntulePanel: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(18)
+            .padding(AppWindowMetrics.panelPadding)
             .background(EntuleTheme.panelGradient)
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: AppWindowMetrics.panelCornerRadius, style: .continuous)
                     .stroke(EntuleTheme.lineSoft, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: AppWindowMetrics.panelCornerRadius, style: .continuous))
             .shadow(color: Color.black.opacity(0.05), radius: 18, y: 12)
     }
 }

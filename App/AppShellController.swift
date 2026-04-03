@@ -27,7 +27,7 @@ final class AppShellController: NSObject, NSWindowDelegate {
         let view = EntuleDashboardView(appShellViewModel: appShellViewModel, workspaceViewModel: workspaceViewModel)
         let hostingController = NSHostingController(rootView: view)
 
-        let targetSize = NSSize(width: AppWindowMetrics.primaryWindowWidth, height: AppWindowMetrics.primaryWindowHeight)
+        let targetSize = NSSize(width: AppWindowMetrics.defaultWindowWidth, height: AppWindowMetrics.defaultWindowHeight)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: targetSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],

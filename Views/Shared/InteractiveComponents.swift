@@ -59,18 +59,20 @@ struct ActionCardButton: View {
     let isPrimary: Bool
     let isDisabled: Bool
     let action: () -> Void
-    let height: CGFloat
+    let minHeight: CGFloat
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
                 Text(title)
                     .font(EntuleTypography.font(18, weight: .semibold))
                     .foregroundStyle(EntuleTheme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(detail)
                     .font(EntuleTypography.font(13))
                     .foregroundStyle(EntuleTheme.inkDim)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
 
@@ -89,7 +91,7 @@ struct ActionCardButton: View {
                     Spacer()
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
             .entulePanel()
             .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }

@@ -15,12 +15,16 @@ struct AppPaneContainer<Content: View, Toolbar: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: AppWindowMetrics.sectionSpacing) {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
             if let toolbar {
-                HStack {
-                    toolbar
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: AppWindowMetrics.spacingS) {
+                        toolbar
+                    }
+                    VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                        toolbar
+                    }
                 }
-                .padding(.bottom, 4)
             }
 
             content

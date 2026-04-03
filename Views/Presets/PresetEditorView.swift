@@ -9,35 +9,92 @@ struct PresetEditorView: View {
     @State private var newURLText = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
+            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
                 Text("Preset Editor")
-                    .font(.system(size: 26, weight: .semibold, design: .rounded))
+                    .font(EntuleTypography.font(28, weight: .semibold))
                     .foregroundStyle(EntuleTheme.ink)
                 Text("Build a reusable launch setup with apps, files, folders, and URLs.")
-                    .font(.caption)
+                    .font(EntuleTypography.font(13))
                     .foregroundStyle(EntuleTheme.inkDim)
             }
 
-            TextField("Preset Name", text: $viewModel.name)
-                .entuleInputField()
-            TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                .entuleInputField()
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
+                    fieldsPanel
+                    itemsPanel
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
 
-            HStack {
-                Button("Add App") { viewModel.addAppItems() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                Button("Add File/Folder") { viewModel.addFileItems() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
+            actionRow
+        }
+        .padding(AppWindowMetrics.outerPadding)
+        .entuleWindowBackground()
+        .frame(minWidth: AppWindowMetrics.editorMinWidth, minHeight: AppWindowMetrics.editorMinHeight)
+    }
+
+    private var fieldsPanel: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppWindowMetrics.spacingS) {
+                    TextField("Preset Name", text: $viewModel.name)
+                        .entuleInputField()
+                    TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
+                        .entuleInputField()
+                }
+
+                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                    TextField("Preset Name", text: $viewModel.name)
+                        .entuleInputField()
+                    TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
+                        .entuleInputField()
+                }
+            }
+            addControls
+        }
+        .entulePanel()
+    }
+
+    private var addControls: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: AppWindowMetrics.spacingS) {
+                addButtons
 
                 TextField("Add URL", text: $newURLText)
                     .entuleInputField()
-                Button("Add URL") {
-                    viewModel.addURLItem(raw: newURLText)
-                    newURLText = ""
-                }
-                .buttonStyle(EntuleSecondaryButtonStyle())
+                    .frame(minWidth: AppWindowMetrics.formMinFieldWidth)
+
+                Button("Add URL") { addURL() }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
             }
+
+            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                addButtons
+                HStack(spacing: AppWindowMetrics.spacingS) {
+                    TextField("Add URL", text: $newURLText)
+                        .entuleInputField()
+                    Button("Add URL") { addURL() }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                }
+            }
+        }
+    }
+
+    private var addButtons: some View {
+        HStack(spacing: AppWindowMetrics.spacingS) {
+            Button("Add App") { viewModel.addAppItems() }
+                .buttonStyle(EntuleSecondaryButtonStyle())
+            Button("Add File or Folder") { viewModel.addFileItems() }
+                .buttonStyle(EntuleSecondaryButtonStyle())
+        }
+    }
+
+    private var itemsPanel: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+            Text("Items")
+                .font(EntuleTypography.font(18, weight: .semibold))
+                .foregroundStyle(EntuleTheme.ink)
 
             List {
                 ForEach($viewModel.items) { $item in
@@ -50,23 +107,40 @@ struct PresetEditorView: View {
             .scrollContentBackground(.hidden)
             .background(Color.clear)
             .listStyle(.plain)
-            .frame(minHeight: 280)
-            .entulePanel()
+            .frame(minHeight: AppWindowMetrics.listMinHeight)
+        }
+        .entulePanel()
+    }
 
-            HStack {
+    private var actionRow: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: AppWindowMetrics.spacingS) {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(EntuleSecondaryButtonStyle())
-                Spacer()
-                Button("Save") {
-                    onSave(viewModel.toPreset())
-                    dismiss()
-                }
-                .buttonStyle(EntulePrimaryButtonStyle())
-                .disabled(!viewModel.canSave)
+                Spacer(minLength: 0)
+                saveButton
             }
+
+            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                saveButton
+                Button("Cancel") { dismiss() }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
-        .entuleWindowBackground()
-        .frame(minWidth: 760, minHeight: 460)
+    }
+
+    private var saveButton: some View {
+        Button("Save") {
+            onSave(viewModel.toPreset())
+            dismiss()
+        }
+        .buttonStyle(EntulePrimaryButtonStyle())
+        .disabled(!viewModel.canSave)
+    }
+
+    private func addURL() {
+        viewModel.addURLItem(raw: newURLText)
+        newURLText = ""
     }
 }
