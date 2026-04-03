@@ -149,6 +149,8 @@ struct HomeUtilityButton<Label: View>: View {
     let action: () -> Void
     let label: Label
 
+    @State private var isHovered = false
+
     init(width: CGFloat, height: CGFloat, action: @escaping () -> Void, @ViewBuilder label: () -> Label) {
         self.width = width
         self.height = height
@@ -163,10 +165,15 @@ struct HomeUtilityButton<Label: View>: View {
                 .background(EntuleTheme.primaryButtonGradient)
                 .foregroundStyle(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .shadow(color: EntuleTheme.orange.opacity(0.18), radius: 12, y: 8)
+                .scaleEffect(isHovered ? 1.03 : 1)
+                .shadow(color: EntuleTheme.orange.opacity(isHovered ? 0.24 : 0.18), radius: isHovered ? 18 : 12, y: isHovered ? 10 : 8)
                 .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .animation(.easeOut(duration: 0.18), value: isHovered)
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
     }
 }
 

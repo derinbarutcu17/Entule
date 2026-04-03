@@ -8,6 +8,9 @@ enum AppWindowMetrics {
 
     static let outerPadding: CGFloat = 20
     static let titlebarTopInset: CGFloat = 26
+    static let shellHeaderBottomSpacing: CGFloat = 22
+    static let shellContentMaxWidth: CGFloat = 860
+    static let shellDockReservedWidth: CGFloat = 164
 
     static let spacingXS: CGFloat = 8
     static let spacingS: CGFloat = 12
@@ -38,6 +41,19 @@ enum AppWindowMetrics {
     static let homePreviewIdealWidth: CGFloat = 170
     static let homePreviewMaxWidth: CGFloat = 200
     static let homePreviewHeight: CGFloat = 190
+    static let homePreviewCompactHeight: CGFloat = 164
+    static let homePreviewRowHeight: CGFloat = 22
+    static let homeClusterGapWide: CGFloat = 56
+    static let homeClusterGapMedium: CGFloat = 36
+    static let homeClusterGapCompact: CGFloat = 24
+    static let homeRightDockInset: CGFloat = 178
+    static let homeUtilityWidth: CGFloat = 104
+    static let homeUtilityHeight: CGFloat = 86
+    static let homeUtilityCompactWidth: CGFloat = 92
+    static let homeUtilityCompactHeight: CGFloat = 74
+    static let homeUtilityGap: CGFloat = 14
+    static let homeUtilityEdgeInset: CGFloat = 10
+    static let homeUtilityBottomInset: CGFloat = 8
 
     static let heroMinWidth: CGFloat = 220
     static let heroMaxWidth: CGFloat = 290

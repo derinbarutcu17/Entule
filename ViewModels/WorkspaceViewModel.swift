@@ -95,14 +95,25 @@ final class WorkspaceViewModel: ObservableObject {
         return report
     }
 
-    func resumeLastSnapshot() async -> LaunchReport? {
+    func resumeLastSnapshot(selectedItemIDs: Set<UUID>? = nil) async -> LaunchReport? {
         guard !isBusy, let snapshot = lastSnapshot else { return nil }
+
+        let selectedItems: [SessionItem]
+        if let selectedItemIDs {
+            selectedItems = snapshot.items.filter { selectedItemIDs.contains($0.id) }
+        } else {
+            selectedItems = snapshot.items
+        }
+
+        guard !selectedItems.isEmpty else {
+            return LaunchReport()
+        }
 
         isResuming = true
         defer { isResuming = false }
 
         let report = await appState.environment.launcher.launch(
-            items: snapshot.items,
+            items: selectedItems,
             shortcutName: snapshot.shortcutName,
             dryRun: false
         )
