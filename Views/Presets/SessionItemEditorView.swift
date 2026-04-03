@@ -13,10 +13,13 @@ struct SessionItemEditorView: View {
             .frame(width: 110)
 
             TextField("Display Name", text: $item.displayName)
+                .entuleInputField()
             TextField("Value", text: $item.value)
+                .entuleInputField()
             Toggle("Selected", isOn: $item.isSelected)
                 .toggleStyle(.switch)
                 .frame(width: 90)
         }
+        .padding(.vertical, 4)
     }
 }

@@ -72,7 +72,7 @@ struct SettingsView: View {
 
                         Text(viewModel.diagnosticsText)
                             .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(EntuleTheme.moon)
+                            .foregroundStyle(EntuleTheme.ink)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .frame(minHeight: AppWindowMetrics.settingsDiagnosticsHeight, alignment: .topLeading)
                             .textSelection(.enabled)

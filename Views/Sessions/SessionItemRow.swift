@@ -28,8 +28,8 @@ struct SessionItemRow: View {
                 .font(.caption2)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.white.opacity(0.06))
-                .foregroundStyle(EntuleTheme.amber)
+                .background(EntuleTheme.orangeWash)
+                .foregroundStyle(EntuleTheme.orange)
                 .overlay(
                     Capsule()
                         .stroke(EntuleTheme.lineWarm, lineWidth: 1)

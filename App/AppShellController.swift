@@ -30,7 +30,7 @@ final class AppShellController: NSObject, NSWindowDelegate {
         let targetSize = NSSize(width: AppWindowMetrics.primaryWindowWidth, height: AppWindowMetrics.primaryWindowHeight)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: targetSize),
-            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -43,11 +43,12 @@ final class AppShellController: NSObject, NSWindowDelegate {
         window.isOpaque = false
         window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
-        window.minSize = targetSize
-        window.maxSize = targetSize
+        window.minSize = NSSize(
+            width: AppWindowMetrics.minimumWindowWidth,
+            height: AppWindowMetrics.minimumWindowHeight
+        )
         window.setContentSize(targetSize)
         window.center()
-        window.standardWindowButton(.zoomButton)?.isEnabled = false
         window.delegate = self
         window.contentViewController = hostingController
 

@@ -1,41 +1,51 @@
 import SwiftUI
 
 enum EntuleTheme {
-    static let obsidian = Color(red: 10 / 255, green: 11 / 255, blue: 15 / 255)
-    static let graphite = Color(red: 16 / 255, green: 19 / 255, blue: 26 / 255)
-    static let ink = Color(red: 20 / 255, green: 25 / 255, blue: 34 / 255)
-    static let panelTop = Color(red: 22 / 255, green: 27 / 255, blue: 36 / 255, opacity: 0.92)
-    static let panelBottom = Color(red: 15 / 255, green: 18 / 255, blue: 25 / 255, opacity: 0.9)
-    static let lineSoft = Color(red: 191 / 255, green: 202 / 255, blue: 224 / 255, opacity: 0.14)
-    static let lineWarm = Color(red: 210 / 255, green: 193 / 255, blue: 151 / 255, opacity: 0.2)
-    static let moon = Color(red: 202 / 255, green: 211 / 255, blue: 232 / 255)
-    static let moonDim = Color(red: 143 / 255, green: 152 / 255, blue: 171 / 255)
-    static let amber = Color(red: 207 / 255, green: 176 / 255, blue: 123 / 255)
-    static let amberSoft = Color(red: 167 / 255, green: 143 / 255, blue: 104 / 255)
-    static let success = Color(red: 156 / 255, green: 207 / 255, blue: 157 / 255)
-    static let danger = Color(red: 229 / 255, green: 169 / 255, blue: 169 / 255)
+    static let canvas = Color(red: 249 / 255, green: 247 / 255, blue: 243 / 255)
+    static let paper = Color.white
+    static let paperWarm = Color(red: 254 / 255, green: 251 / 255, blue: 246 / 255)
+
+    static let ink = Color(red: 18 / 255, green: 18 / 255, blue: 18 / 255)
+    static let inkDim = Color(red: 103 / 255, green: 103 / 255, blue: 103 / 255)
+    static let inkSoft = Color(red: 138 / 255, green: 138 / 255, blue: 138 / 255)
+
+    static let orange = Color(red: 230 / 255, green: 90 / 255, blue: 8 / 255)
+    static let orangeDeep = Color(red: 206 / 255, green: 77 / 255, blue: 8 / 255)
+    static let orangeSoft = Color(red: 246 / 255, green: 139 / 255, blue: 76 / 255)
+    static let orangeWash = Color(red: 255 / 255, green: 245 / 255, blue: 238 / 255)
+
+    static let lineSoft = Color.black.opacity(0.08)
+    static let lineWarm = orange.opacity(0.22)
+    static let moon = ink
+    static let moonDim = inkDim
+    static let amber = orange
+    static let amberSoft = orangeSoft
+    static let success = Color(red: 20 / 255, green: 132 / 255, blue: 74 / 255)
+    static let danger = Color(red: 180 / 255, green: 52 / 255, blue: 30 / 255)
 
     static let windowGradient = LinearGradient(
-        colors: [obsidian, graphite, Color.black.opacity(0.92)],
+        colors: [canvas, paperWarm],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     static let panelGradient = LinearGradient(
-        colors: [panelTop, panelBottom],
+        colors: [paper, paperWarm],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     static let primaryButtonGradient = LinearGradient(
-        colors: [
-            Color(red: 211 / 255, green: 178 / 255, blue: 127 / 255),
-            Color(red: 175 / 255, green: 142 / 255, blue: 93 / 255),
-            Color(red: 152 / 255, green: 119 / 255, blue: 72 / 255)
-        ],
+        colors: [orange, orangeDeep],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+}
+
+enum EntuleTypography {
+    static func font(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Font.custom("Manrope", size: size).weight(weight)
+    }
 }
 
 struct EntuleWindowBackground: ViewModifier {
@@ -45,20 +55,20 @@ struct EntuleWindowBackground: ViewModifier {
                 .ignoresSafeArea()
 
             Circle()
-                .fill(EntuleTheme.amber.opacity(0.12))
-                .frame(width: 320, height: 320)
-                .blur(radius: 80)
-                .offset(x: -220, y: -220)
+                .fill(EntuleTheme.orange.opacity(0.05))
+                .frame(width: 420, height: 420)
+                .blur(radius: 60)
+                .offset(x: 220, y: -160)
 
             Circle()
-                .fill(EntuleTheme.moon.opacity(0.08))
-                .frame(width: 360, height: 360)
-                .blur(radius: 100)
-                .offset(x: 240, y: -180)
+                .fill(Color.black.opacity(0.03))
+                .frame(width: 320, height: 320)
+                .blur(radius: 90)
+                .offset(x: -280, y: 260)
 
             content
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 }
 
@@ -68,27 +78,23 @@ struct EntulePanel: ViewModifier {
             .padding(18)
             .background(EntuleTheme.panelGradient)
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(EntuleTheme.lineSoft, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: Color.black.opacity(0.32), radius: 26, y: 14)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .shadow(color: Color.black.opacity(0.05), radius: 18, y: 12)
     }
 }
 
 struct EntulePrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .semibold))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .font(EntuleTypography.font(13, weight: .semibold))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             .background(EntuleTheme.primaryButtonGradient)
-            .foregroundStyle(Color.black.opacity(0.88))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .foregroundStyle(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .opacity(configuration.isPressed ? 0.94 : 1)
     }
@@ -97,16 +103,31 @@ struct EntulePrimaryButtonStyle: ButtonStyle {
 struct EntuleSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(Color.white.opacity(configuration.isPressed ? 0.09 : 0.05))
-            .foregroundStyle(EntuleTheme.moon)
+            .font(EntuleTypography.font(13, weight: .medium))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(configuration.isPressed ? EntuleTheme.orangeWash : Color.white.opacity(0.92))
+            .foregroundStyle(EntuleTheme.ink)
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(EntuleTheme.lineWarm, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+struct EntuleInputField: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(Color.white)
+            .foregroundStyle(EntuleTheme.ink)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(EntuleTheme.lineWarm, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -117,5 +138,9 @@ extension View {
 
     func entulePanel() -> some View {
         modifier(EntulePanel())
+    }
+
+    func entuleInputField() -> some View {
+        modifier(EntuleInputField())
     }
 }

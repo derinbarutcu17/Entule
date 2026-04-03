@@ -17,8 +17,8 @@ struct SaveSessionSheet: View {
         AppPaneContainer {
             VStack(alignment: .leading, spacing: AppWindowMetrics.sectionSpacing) {
                 Text(summaryLine)
-                    .font(.caption)
-                    .foregroundStyle(EntuleTheme.moonDim)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(EntuleTheme.inkDim)
 
                 HStack(spacing: 10) {
                     Button("Select All") { viewModel.selectAll() }
@@ -92,6 +92,7 @@ struct SaveSessionSheet: View {
                             }
                             .scrollContentBackground(.hidden)
                             .background(Color.clear)
+                            .listStyle(.plain)
                             .frame(height: AppWindowMetrics.saveContentHeight)
                             .entulePanel()
                         }
@@ -122,7 +123,7 @@ struct SaveSessionSheet: View {
 
                     HStack {
                         TextField("Add URL", text: $manualURL)
-                            .textFieldStyle(.roundedBorder)
+                            .entuleInputField()
                         Button("Add URL") {
                             if viewModel.addManualURL(raw: manualURL) {
                                 manualURL = ""
@@ -141,9 +142,9 @@ struct SaveSessionSheet: View {
 
                     HStack(spacing: 12) {
                         TextField("Note", text: $viewModel.note)
-                            .textFieldStyle(.roundedBorder)
+                            .entuleInputField()
                         TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                            .textFieldStyle(.roundedBorder)
+                            .entuleInputField()
                     }
                 }
                 .entulePanel()

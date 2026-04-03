@@ -15,9 +15,9 @@ struct SidebarNavItem: View {
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(section.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(EntuleTypography.font(13, weight: .semibold))
                     Text(section.subtitle)
-                        .font(.system(size: 11))
+                        .font(EntuleTypography.font(11))
                         .lineLimit(1)
                         .opacity(0.78)
                 }
@@ -35,13 +35,13 @@ struct SidebarNavItem: View {
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
-        .foregroundStyle(isActive ? EntuleTheme.moon : EntuleTheme.moonDim)
+        .foregroundStyle(isActive ? EntuleTheme.ink : EntuleTheme.inkDim)
         .onHover(perform: onHover)
     }
 
     private var backgroundFill: Color {
-        if isActive { return Color.white.opacity(0.08) }
-        if isHovered { return Color.white.opacity(0.045) }
+        if isActive { return EntuleTheme.orangeWash }
+        if isHovered { return Color.white.opacity(0.8) }
         return .clear
     }
 
@@ -65,50 +65,106 @@ struct ActionCardButton: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 12) {
                 Text(title)
-                    .font(.headline)
-                    .foregroundStyle(EntuleTheme.moon)
+                    .font(EntuleTypography.font(18, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.ink)
 
                 Text(detail)
-                    .font(.system(size: 13))
-                    .foregroundStyle(EntuleTheme.moonDim)
+                    .font(EntuleTypography.font(13))
+                    .foregroundStyle(EntuleTheme.inkDim)
 
                 Spacer(minLength: 0)
 
                 HStack {
-                    if isPrimary {
-                        Text(actionTitle)
-                            .font(.system(size: 13, weight: .semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(EntuleTheme.primaryButtonGradient)
-                            .foregroundStyle(Color.black.opacity(0.88))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    } else {
-                        Text(actionTitle)
-                            .font(.system(size: 13, weight: .medium))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(Color.white.opacity(0.05))
-                            .foregroundStyle(EntuleTheme.moon)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(EntuleTheme.lineWarm, lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
+                    Text(actionTitle)
+                        .font(EntuleTypography.font(13, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(isPrimary ? AnyShapeStyle(EntuleTheme.primaryButtonGradient) : AnyShapeStyle(Color.white))
+                        .foregroundStyle(isPrimary ? AnyShapeStyle(Color.white) : AnyShapeStyle(EntuleTheme.ink))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(isPrimary ? Color.clear : EntuleTheme.lineWarm, lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     Spacer()
                 }
             }
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .topLeading)
             .entulePanel()
-            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
+    }
+}
+
+struct FloatingSectionButton: View {
+    let section: AppSection
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: section.symbolName)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 18, height: 18)
+
+                if isActive {
+                    Text(shortLabel)
+                        .font(EntuleTypography.font(14, weight: .medium))
+                        .lineLimit(1)
+                }
+            }
+            .foregroundStyle(Color.white)
+            .padding(.horizontal, isActive ? 18 : 0)
+            .frame(
+                width: isActive ? AppWindowMetrics.floatingDockActiveWidth : AppWindowMetrics.floatingDockCircleSize,
+                height: AppWindowMetrics.floatingDockCircleSize
+            )
+            .background(EntuleTheme.primaryButtonGradient)
+            .clipShape(Capsule())
+            .contentShape(Capsule())
+            .shadow(color: EntuleTheme.orange.opacity(0.18), radius: 12, y: 8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var shortLabel: String {
+        switch section {
+        case .home: return "Home"
+        case .saveSession: return "Save"
+        case .inspectCheckpoint: return "Inspect"
+        case .presets: return "Presets"
+        case .settings: return "Settings"
+        }
+    }
+}
+
+struct HomeUtilityButton<Label: View>: View {
+    let width: CGFloat
+    let height: CGFloat
+    let action: () -> Void
+    let label: Label
+
+    init(width: CGFloat, height: CGFloat, action: @escaping () -> Void, @ViewBuilder label: () -> Label) {
+        self.width = width
+        self.height = height
+        self.action = action
+        self.label = label()
+    }
+
+    var body: some View {
+        Button(action: action) {
+            label
+                .frame(width: width, height: height)
+                .background(EntuleTheme.primaryButtonGradient)
+                .foregroundStyle(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .shadow(color: EntuleTheme.orange.opacity(0.18), radius: 12, y: 8)
+                .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -120,10 +176,10 @@ struct CopyValueButton: View {
         Button(action: copyValue) {
             Image(systemName: "doc.on.doc")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(EntuleTheme.moonDim)
+                .foregroundStyle(EntuleTheme.inkDim)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                .background(Color.white.opacity(0.04))
+                .background(Color.white.opacity(0.9))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(EntuleTheme.lineSoft, lineWidth: 1)

@@ -13,16 +13,16 @@ struct PresetEditorView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Preset Editor")
                     .font(.system(size: 26, weight: .semibold, design: .rounded))
-                    .foregroundStyle(EntuleTheme.moon)
+                    .foregroundStyle(EntuleTheme.ink)
                 Text("Build a reusable launch setup with apps, files, folders, and URLs.")
                     .font(.caption)
-                    .foregroundStyle(EntuleTheme.moonDim)
+                    .foregroundStyle(EntuleTheme.inkDim)
             }
 
             TextField("Preset Name", text: $viewModel.name)
-                .textFieldStyle(.roundedBorder)
+                .entuleInputField()
             TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                .textFieldStyle(.roundedBorder)
+                .entuleInputField()
 
             HStack {
                 Button("Add App") { viewModel.addAppItems() }
@@ -31,7 +31,7 @@ struct PresetEditorView: View {
                     .buttonStyle(EntuleSecondaryButtonStyle())
 
                 TextField("Add URL", text: $newURLText)
-                    .textFieldStyle(.roundedBorder)
+                    .entuleInputField()
                 Button("Add URL") {
                     viewModel.addURLItem(raw: newURLText)
                     newURLText = ""
@@ -49,6 +49,7 @@ struct PresetEditorView: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
+            .listStyle(.plain)
             .frame(minHeight: 280)
             .entulePanel()
 

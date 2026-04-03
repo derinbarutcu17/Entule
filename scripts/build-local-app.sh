@@ -15,7 +15,7 @@ rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 cp "$ROOT_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$BUILD_DIR/Entule" "$MACOS_DIR/Entule"
-cp "$ROOT_DIR/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+cp -R "$ROOT_DIR/Resources/." "$RESOURCES_DIR/"
 chmod +x "$MACOS_DIR/Entule"
 printf 'APPL????' > "$CONTENTS_DIR/PkgInfo"
 

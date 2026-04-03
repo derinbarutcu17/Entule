@@ -3,94 +3,183 @@ import SwiftUI
 struct EntuleDashboardView: View {
     @ObservedObject var appShellViewModel: AppShellViewModel
     @ObservedObject var workspaceViewModel: WorkspaceViewModel
-    @State private var hoveredSection: AppSection?
 
     var body: some View {
-        HStack(spacing: AppWindowMetrics.shellSpacing) {
-            sidebar
+        GeometryReader { proxy in
+            let scale = min(
+                proxy.size.width / AppWindowMetrics.primaryWindowWidth,
+                proxy.size.height / AppWindowMetrics.primaryWindowHeight
+            )
 
-            Divider()
-                .overlay(EntuleTheme.lineSoft)
-
-            VStack(alignment: .leading, spacing: AppWindowMetrics.sectionSpacing) {
-                header
-                activeSectionView
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            ZStack {
+                ZStack(alignment: .bottomTrailing) {
+                    if appShellViewModel.activeSection == .home {
+                        homeScene
+                    } else {
+                        secondaryScene
+                    }
+                }
+                .frame(width: AppWindowMetrics.primaryWindowWidth, height: AppWindowMetrics.primaryWindowHeight)
+                .scaleEffect(scale, anchor: .center)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.top, AppWindowMetrics.titlebarTopInset)
-        .padding(.horizontal, AppWindowMetrics.shellPadding)
-        .padding(.bottom, AppWindowMetrics.shellPadding)
-        .frame(width: AppWindowMetrics.primaryWindowWidth, height: AppWindowMetrics.primaryWindowHeight)
         .entuleWindowBackground()
     }
 
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: AppWindowMetrics.sectionSpacing) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ENTULE")
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(2.8)
-                    .foregroundStyle(EntuleTheme.amber)
-                Text("Return to work instantly.")
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
-                    .foregroundStyle(EntuleTheme.moon)
-                Text("This is the main app surface. Use it like a regular desktop app, with the menu bar as quick access.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(EntuleTheme.moonDim)
-            }
+    private var homeScene: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .topLeading) {
+                Text("Entule")
+                    .font(EntuleTypography.font(62))
+                    .foregroundStyle(EntuleTheme.ink)
+                    .padding(.top, AppWindowMetrics.titlebarTopInset)
+                    .padding(.leading, 20)
 
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(AppSection.allCases) { section in
-                    SidebarNavItem(
-                        section: section,
-                        isActive: appShellViewModel.activeSection == section,
-                        isHovered: hoveredSection == section,
-                        action: { appShellViewModel.navigate(to: section) },
-                        onHover: { isHovering in
-                            hoveredSection = isHovering ? section : (hoveredSection == section ? nil : hoveredSection)
+                orbButton(
+                    title: "Save\nSession",
+                    size: AppWindowMetrics.homeSaveCircleSize,
+                    detail: lastSaveLabel,
+                    detailRotation: -18,
+                    action: { appShellViewModel.showSaveSession() },
+                    disabled: workspaceViewModel.isBusy,
+                    fontSize: 72,
+                    centered: true
+                )
+                .position(x: 330, y: 405)
+
+                orbButton(
+                    title: "Resume\nSession",
+                    size: AppWindowMetrics.homeResumeCircleSize,
+                    detail: nil,
+                    detailRotation: 0,
+                    action: { Task { _ = await workspaceViewModel.resumeLastSnapshot() } },
+                    disabled: !workspaceViewModel.canResumeLastSession,
+                    fontSize: 42,
+                    centered: false
+                )
+                .position(x: 700, y: 230)
+
+                previewCard
+                    .position(x: 940, y: 245)
+
+                orbButton(
+                    title: inspectLabel,
+                    size: AppWindowMetrics.homeInspectCircleSize,
+                    detail: nil,
+                    detailRotation: 0,
+                    action: { appShellViewModel.inspectCheckpoint() },
+                    disabled: workspaceViewModel.lastSnapshot == nil,
+                    fontSize: 19,
+                    centered: true
+                )
+                .position(x: 810, y: 405)
+
+                VStack(spacing: 14) {
+                    HomeUtilityButton(
+                        width: AppWindowMetrics.homeUtilityCircleSize,
+                        height: AppWindowMetrics.homeUtilityCircleSize,
+                        action: { appShellViewModel.openSettings() }
+                    ) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 30, weight: .regular))
+                    }
+
+                    HomeUtilityButton(
+                        width: AppWindowMetrics.homeUtilityPillWidth,
+                        height: AppWindowMetrics.homeUtilityPillHeight,
+                        action: { appShellViewModel.openPresets() }
+                    ) {
+                        VStack(spacing: 4) {
+                            Text("Presets")
+                                .font(.system(size: 17, weight: .medium, design: .rounded))
+                            Image(systemName: "plus.square.on.square")
+                                .font(.system(size: 18, weight: .regular))
                         }
-                    )
+                    }
                 }
+                .position(x: proxy.size.width - 72, y: proxy.size.height - 110)
             }
-
-            Spacer(minLength: 0)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Status")
-                    .font(.headline)
-                    .foregroundStyle(EntuleTheme.moon)
-                Text(appShellViewModel.statusLine)
-                    .font(.system(size: 13))
-                    .foregroundStyle(EntuleTheme.moonDim)
-
-                HStack(spacing: 10) {
-                    statChip(label: "Presets", value: workspaceViewModel.presets.count)
-                    statChip(label: "Saved", value: workspaceViewModel.lastSnapshot?.items.count ?? 0)
-                }
-            }
-            .entulePanel()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(minWidth: AppWindowMetrics.sidebarWidth, maxWidth: AppWindowMetrics.sidebarWidth, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(appShellViewModel.activeSection.title)
-                .font(.system(size: 32, weight: .semibold, design: .rounded))
-                .foregroundStyle(EntuleTheme.moon)
-            Text(appShellViewModel.activeSection.subtitle)
-                .font(.system(size: 14))
-                .foregroundStyle(EntuleTheme.moonDim)
+    private var secondaryScene: some View {
+        ZStack(alignment: .bottomTrailing) {
+            VStack(alignment: .leading, spacing: 26) {
+                Text("Entule")
+                    .font(EntuleTypography.font(58))
+                    .foregroundStyle(EntuleTheme.ink)
+
+                HStack(alignment: .top, spacing: 34) {
+                    secondaryHero
+                        .frame(width: 280)
+
+                    activeSectionPage
+                        .frame(width: AppWindowMetrics.sectionContentWidth)
+                        .frame(maxHeight: .infinity, alignment: .topLeading)
+                }
+            }
+            .padding(.top, AppWindowMetrics.titlebarTopInset + 6)
+            .padding(.leading, 20)
+            .padding(.bottom, 20)
+            .padding(.trailing, 116)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            VStack(alignment: .trailing, spacing: AppWindowMetrics.floatingDockStackSpacing) {
+                ForEach(AppSection.allCases.filter { $0 != .home }) { section in
+                    FloatingSectionButton(
+                        section: section,
+                        isActive: appShellViewModel.activeSection == section,
+                        action: { appShellViewModel.navigate(to: section) }
+                    )
+                }
+
+                FloatingSectionButton(section: .home, isActive: false) {
+                    appShellViewModel.showHome()
+                }
+            }
+            .padding(.trailing, 18)
+            .padding(.bottom, 18)
+        }
+    }
+
+    private var secondaryHero: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Circle()
+                .fill(EntuleTheme.primaryButtonGradient)
+                .frame(width: AppWindowMetrics.sectionHeroSize, height: AppWindowMetrics.sectionHeroSize)
+                .overlay(
+                    Text(heroTitle(for: appShellViewModel.activeSection))
+                        .font(EntuleTypography.font(44))
+                        .multilineTextAlignment(.leading)
+                        .foregroundStyle(Color.white)
+                        .padding(38),
+                    alignment: .leading
+                )
+
+            Circle()
+                .fill(EntuleTheme.primaryButtonGradient)
+                .frame(width: AppWindowMetrics.sectionMetaCircleSize, height: AppWindowMetrics.sectionMetaCircleSize)
+                .overlay(
+                    Text(metaLabel(for: appShellViewModel.activeSection))
+                        .font(EntuleTypography.font(16, weight: .medium))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.white)
+                        .padding(10)
+                )
+
+            Text(descriptionText(for: appShellViewModel.activeSection))
+                .font(EntuleTypography.font(14))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder
-    private var activeSectionView: some View {
+    private var activeSectionPage: some View {
         switch appShellViewModel.activeSection {
         case .home:
-            homeSection
+            EmptyView()
         case .saveSession:
             SaveSessionSheet(
                 viewModel: SaveSessionViewModel(),
@@ -107,7 +196,7 @@ struct EntuleDashboardView: View {
             } else {
                 emptyState(
                     title: "No checkpoint saved yet",
-                    message: "Save a current session first, then come back here to resume it."
+                    message: "Save a session first, then come back here to inspect it or resume it."
                 )
             }
         case .presets:
@@ -117,199 +206,141 @@ struct EntuleDashboardView: View {
         }
     }
 
-    private var homeSection: some View {
-        VStack(spacing: AppWindowMetrics.sectionSpacing) {
-            HStack(spacing: AppWindowMetrics.sectionSpacing) {
-                ForEach(homeActionCards) { card in
-                    ActionCardButton(
-                        title: card.title,
-                        detail: card.detail,
-                        actionTitle: card.actionTitle,
-                        isPrimary: card.isPrimary,
-                        isDisabled: card.isDisabled,
-                        action: card.action,
-                        height: AppWindowMetrics.homeActionCardHeight
-                    )
+    private var previewCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if previewItems.isEmpty {
+                Text("No saved\nitems yet")
+                    .font(EntuleTypography.font(17, weight: .medium))
+                    .foregroundStyle(Color.white)
+            } else {
+                ForEach(previewItems, id: \.self) { item in
+                    Text("• \(item)")
+                        .lineLimit(1)
+                        .font(EntuleTypography.font(16))
+                        .foregroundStyle(Color.white)
                 }
             }
-            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 20)
+        .frame(width: AppWindowMetrics.homePreviewWidth, height: AppWindowMetrics.homePreviewHeight, alignment: .topLeading)
+        .background(EntuleTheme.primaryButtonGradient)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: EntuleTheme.orange.opacity(0.18), radius: 12, y: 8)
+    }
 
-            HStack(spacing: AppWindowMetrics.sectionSpacing) {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Last Checkpoint")
-                        .font(.headline)
-                        .foregroundStyle(EntuleTheme.moon)
+    private var previewItems: [String] {
+        guard let snapshot = workspaceViewModel.lastSnapshot else { return [] }
+        return Array(snapshot.items.prefix(7).map(\.displayName))
+    }
 
-                    if let snapshot = workspaceViewModel.lastSnapshot {
-                        checkpointStatRow(label: "Created", value: snapshot.createdAt.formatted(date: .abbreviated, time: .shortened))
-                        checkpointStatRow(label: "Items", value: "\(snapshot.items.count)")
-                        checkpointStatRow(label: "Shortcut", value: snapshot.shortcutName ?? "None")
+    private var lastSaveLabel: String {
+        guard let snapshot = workspaceViewModel.lastSnapshot else {
+            return "save a checkpoint"
+        }
+        return "last save: \(snapshot.createdAt.formatted(date: .abbreviated, time: .shortened))"
+    }
 
-                        if !snapshot.note.isEmpty {
-                            Text(snapshot.note)
-                                .font(.callout)
-                                .foregroundStyle(EntuleTheme.moon)
-                                .padding(.top, 4)
-                        }
+    private var inspectLabel: String {
+        let count = workspaceViewModel.lastSnapshot?.items.count ?? 0
+        return count == 1 ? "1 Item" : "\(count) Items"
+    }
 
-                        HStack(spacing: 10) {
-                            Button("Resume") {
-                                Task { _ = await workspaceViewModel.resumeLastSnapshot() }
-                            }
-                            .buttonStyle(EntulePrimaryButtonStyle())
-                            .disabled(!workspaceViewModel.canResumeLastSession)
-
-                            Button("Inspect") {
-                                appShellViewModel.inspectCheckpoint()
-                            }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
-                        }
-                        .padding(.top, 6)
-                    } else {
-                        emptyStateInline("No checkpoint saved yet.")
+    private func orbButton(
+        title: String,
+        size: CGFloat,
+        detail: String?,
+        detailRotation: Double,
+        action: @escaping () -> Void,
+        disabled: Bool,
+        fontSize: CGFloat,
+        centered: Bool
+    ) -> some View {
+        Button(action: action) {
+            Circle()
+                .fill(EntuleTheme.primaryButtonGradient)
+                .frame(width: size, height: size)
+                .overlay(alignment: centered ? .center : .leading) {
+                    Text(title)
+                        .font(EntuleTypography.font(fontSize))
+                        .multilineTextAlignment(centered ? .center : .leading)
+                        .foregroundStyle(Color.white)
+                        .padding(centered ? 0 : size * 0.18)
+                }
+                .overlay(alignment: .bottomLeading) {
+                    if let detail {
+                        Text(detail)
+                            .font(EntuleTypography.font(size > 300 ? 21 : 15))
+                            .foregroundStyle(Color.white)
+                            .rotationEffect(.degrees(detailRotation))
+                            .padding(.leading, size * 0.2)
+                            .padding(.bottom, size * 0.08)
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: AppWindowMetrics.homeLowerPanelHeight, maxHeight: AppWindowMetrics.homeLowerPanelHeight, alignment: .topLeading)
-                .entulePanel()
-
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Presets")
-                        .font(.headline)
-                        .foregroundStyle(EntuleTheme.moon)
-
-                    if workspaceViewModel.presets.isEmpty {
-                        emptyStateInline("No presets yet. Create one to open apps, folders, files, and URLs in one click.")
-                    } else {
-                        ForEach(workspaceViewModel.presets.prefix(5)) { preset in
-                            HStack(alignment: .center, spacing: 12) {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(preset.name)
-                                        .foregroundStyle(EntuleTheme.moon)
-                                    Text("\(preset.items.count) items")
-                                        .font(.caption)
-                                        .foregroundStyle(EntuleTheme.moonDim)
-                                }
-                                Spacer()
-                                Button("Launch") {
-                                    Task { await workspaceViewModel.launchPreset(preset) }
-                                }
-                                .buttonStyle(EntuleSecondaryButtonStyle())
-                                .disabled(workspaceViewModel.isBusy)
-                            }
-                            if preset.id != workspaceViewModel.presets.prefix(5).last?.id {
-                                Divider().overlay(EntuleTheme.lineSoft)
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: AppWindowMetrics.homeLowerPanelHeight, maxHeight: AppWindowMetrics.homeLowerPanelHeight, alignment: .topLeading)
-                .entulePanel()
-            }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+                .opacity(disabled ? 0.45 : 1)
+                .shadow(color: EntuleTheme.orange.opacity(disabled ? 0.08 : 0.18), radius: 16, y: 10)
+                .contentShape(Circle())
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .buttonStyle(.plain)
+        .disabled(disabled)
     }
 
-    private var homeActionCards: [HomeActionCard] {
-        [
-            HomeActionCard(
-                id: "save-current-session",
-                title: "Save Current Session",
-                detail: "Detect open work, review it, and save a checkpoint.",
-                actionTitle: "Save Now",
-                isPrimary: true,
-                isDisabled: workspaceViewModel.isBusy,
-                action: { appShellViewModel.showSaveSession() }
-            ),
-            HomeActionCard(
-                id: "resume-last-session",
-                title: "Resume Last Session",
-                detail: "Reopen your latest checkpoint with the saved note and resources.",
-                actionTitle: "Resume",
-                isPrimary: false,
-                isDisabled: !workspaceViewModel.canResumeLastSession,
-                action: { Task { _ = await workspaceViewModel.resumeLastSnapshot() } }
-            ),
-            HomeActionCard(
-                id: "manage-presets",
-                title: "Manage Presets",
-                detail: "Create reusable launch sets for the work you repeat often.",
-                actionTitle: "Open Presets",
-                isPrimary: false,
-                isDisabled: false,
-                action: { appShellViewModel.openPresets() }
-            )
-        ]
+    private func heroTitle(for section: AppSection) -> String {
+        switch section {
+        case .home:
+            return ""
+        case .saveSession:
+            return "Save\nSession"
+        case .inspectCheckpoint:
+            return "Inspect\nSession"
+        case .presets:
+            return "Preset\nLibrary"
+        case .settings:
+            return "Settings"
+        }
     }
 
-    private func checkpointStatRow(label: String, value: String) -> some View {
-        HStack(spacing: 8) {
-            Text(label)
-                .foregroundStyle(EntuleTheme.moonDim)
-            Spacer(minLength: 8)
-            Text(value)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .foregroundStyle(EntuleTheme.moon)
-            CopyValueButton(value: value, label: label)
+    private func metaLabel(for section: AppSection) -> String {
+        switch section {
+        case .home:
+            return ""
+        case .saveSession:
+            return workspaceViewModel.lastSnapshot == nil ? "new" : "review"
+        case .inspectCheckpoint:
+            return inspectLabel
+        case .presets:
+            let count = workspaceViewModel.presets.count
+            return count == 1 ? "1 set" : "\(count) sets"
+        case .settings:
+            return "local\ncontrols"
         }
-        .font(.system(size: 13))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.white.opacity(0.04))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(EntuleTheme.lineSoft, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func statChip(label: String, value: Int) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(EntuleTheme.moonDim)
-            Text("\(value)")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(EntuleTheme.moon)
+    private func descriptionText(for section: AppSection) -> String {
+        switch section {
+        case .home:
+            return ""
+        case .saveSession:
+            return "Capture the apps, folders, files, and links you want to reopen later, then trim the list before saving."
+        case .inspectCheckpoint:
+            return "Review the latest checkpoint, read its note, and see exactly what Entule will try to reopen."
+        case .presets:
+            return "Build reusable launch sets for the work you repeat often and run them whenever you need them."
+        case .settings:
+            return "Permissions, local storage controls, reset tools, and lightweight diagnostics all live here."
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.white.opacity(0.04))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(EntuleTheme.lineSoft, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func emptyState(title: String, message: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.headline)
-                .foregroundStyle(EntuleTheme.moon)
+                .font(EntuleTypography.font(24, weight: .semibold))
+                .foregroundStyle(EntuleTheme.ink)
             Text(message)
-                .font(.system(size: 13))
-                .foregroundStyle(EntuleTheme.moonDim)
+                .font(EntuleTypography.font(14))
+                .foregroundStyle(EntuleTheme.inkDim)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .entulePanel()
     }
-
-    private func emptyStateInline(_ message: String) -> some View {
-        Text(message)
-            .font(.system(size: 13))
-            .foregroundStyle(EntuleTheme.moonDim)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-}
-
-private struct HomeActionCard: Identifiable {
-    let id: String
-    let title: String
-    let detail: String
-    let actionTitle: String
-    let isPrimary: Bool
-    let isDisabled: Bool
-    let action: () -> Void
 }

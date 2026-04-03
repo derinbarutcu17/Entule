@@ -44,6 +44,7 @@ struct ResumeSessionSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
+            .listStyle(.plain)
             .frame(height: AppWindowMetrics.resumeContentHeight)
             .entulePanel()
 
@@ -125,7 +126,7 @@ struct ResumeSessionSheet: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.04))
+        .background(Color.white)
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(tint.opacity(0.35), lineWidth: 1)

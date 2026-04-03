@@ -23,38 +23,45 @@ struct PresetManagementView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .entulePanel()
             } else {
-                List {
-                    ForEach(workspaceViewModel.presets) { preset in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(preset.name)
-                                    .foregroundStyle(EntuleTheme.moon)
-                                Text("\(preset.items.count) items")
-                                    .font(.caption)
-                                    .foregroundStyle(EntuleTheme.moonDim)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(workspaceViewModel.presets) { preset in
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(preset.name)
+                                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(EntuleTheme.ink)
+                                        Text("\(preset.items.count) items")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(EntuleTheme.inkDim)
+                                    }
+                                    Spacer()
+                                }
+
+                                HStack(spacing: 10) {
+                                    Button("Launch") {
+                                        Task { await workspaceViewModel.launchPreset(preset) }
+                                    }
+                                    .buttonStyle(EntulePrimaryButtonStyle())
+                                    .disabled(workspaceViewModel.isBusy)
+
+                                    Button("Edit") {
+                                        editingPreset = preset
+                                    }
+                                    .buttonStyle(EntuleSecondaryButtonStyle())
+
+                                    Button("Delete", role: .destructive) {
+                                        workspaceViewModel.deletePreset(id: preset.id)
+                                    }
+                                    .buttonStyle(EntuleSecondaryButtonStyle())
+                                }
                             }
-                            Spacer()
-                            Button("Launch") {
-                                Task { await workspaceViewModel.launchPreset(preset) }
-                            }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
-                            .disabled(workspaceViewModel.isBusy)
-                            Button("Edit") {
-                                editingPreset = preset
-                            }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
-                            Button("Delete", role: .destructive) {
-                                workspaceViewModel.deletePreset(id: preset.id)
-                            }
-                            .buttonStyle(EntuleSecondaryButtonStyle())
+                            .entulePanel()
                         }
-                        .listRowBackground(Color.clear)
                     }
                 }
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
                 .frame(height: AppWindowMetrics.presetsListHeight)
-                .entulePanel()
             }
         } toolbar: {
             Spacer()
