@@ -4,6 +4,8 @@
 
 - Download link: https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg
 - Terminal download: `curl -fL --retry 3 -o ~/Downloads/Entule.dmg https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg && open ~/Downloads/Entule.dmg`
+- If macOS shows “Apple could not verify Entule is free of malware,” right-click `Entule.app` in Applications, choose `Open`, then confirm `Open` once.
+- Best long-term fix (official): Apple Developer ID signing + Apple notarization for each release. That removes this warning for users by default.
 
 ## What Entule Does And How To Use It
 
