@@ -225,31 +225,15 @@ You can also create a local DMG with:
 
 ## Download A Built App
 
-If you just want the packaged app from GitHub Releases, use this bash one-liner:
+One click download:
+
+[Download the latest Entule DMG](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg)
+
+If you want a terminal command instead:
 
 ```bash
-curl -L -o /tmp/Entule.dmg \
-  $(curl -fsSL https://api.github.com/repos/derinbarutcu17/Entule/releases/latest \
-    | python3 - <<'PY'
-import json, sys
-
-data = json.load(sys.stdin)
-for asset in data.get('assets', []):
-    if asset.get('name', '').endswith('.dmg'):
-        print(asset['browser_download_url'])
-        break
-else:
-    raise SystemExit('No .dmg asset found in the latest release')
-PY
-  )
-open /tmp/Entule.dmg
+curl -L -o ~/Downloads/Entule.dmg https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg && open ~/Downloads/Entule.dmg
 ```
 
-Or, if you prefer a script from the repo, run:
-
-```bash
-./scripts/download-latest-release.sh
-```
-
-That script downloads the latest `.dmg` release asset into your Downloads folder and opens it.
+That link works after a release has been published and the release asset is uploaded as `Entule.dmg`.
 

@@ -6,7 +6,7 @@ VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$ROOT
 DIST_DIR="$ROOT_DIR/dist"
 STAGE_DIR="$DIST_DIR/dmg-stage"
 APP_DIR="$("$ROOT_DIR/scripts/build-local-app.sh" "$DIST_DIR/Entule.app")"
-DMG_PATH="$DIST_DIR/release-v${VERSION}.dmg"
+DMG_PATH="$DIST_DIR/Entule.dmg"
 
 rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR"
