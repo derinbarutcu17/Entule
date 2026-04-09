@@ -19,7 +19,7 @@ Entule is a macOS app for saving a work checkpoint and reopening it later.
 ```bash
 swift build
 ./scripts/install-local-app.sh
-./scripts/create-zip.sh
+bash ./scripts/create-zip.sh
 ```
 
 ## Notes
