@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SessionItemRow: View {
     @Binding var item: SessionItem
@@ -6,18 +7,19 @@ struct SessionItemRow: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: AppWindowMetrics.spacingS) {
+            HStack(alignment: .center, spacing: AppWindowMetrics.spacingS) {
                 rowToggle
-                rowKind
+                rowIcon
                 rowText
                 Spacer(minLength: 0)
                 rowTrailing
             }
+            .padding(.horizontal, 6)
 
             VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                HStack(alignment: .top, spacing: AppWindowMetrics.spacingS) {
+                HStack(alignment: .center, spacing: AppWindowMetrics.spacingS) {
                     rowToggle
-                    rowKind
+                    rowIcon
                     rowText
                 }
                 HStack(spacing: AppWindowMetrics.spacingS) {
@@ -25,69 +27,70 @@ struct SessionItemRow: View {
                     rowTrailing
                 }
             }
+            .padding(.horizontal, 6)
         }
         .padding(.vertical, AppWindowMetrics.spacingXS)
     }
 
     private var rowToggle: some View {
-        Toggle("", isOn: $item.isSelected)
-            .labelsHidden()
-            .frame(width: 28, alignment: .leading)
+        Button {
+            item.isSelected.toggle()
+        } label: {
+            Image(systemName: item.isSelected ? "checkmark.square.fill" : "square")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(item.isSelected ? EntuleTheme.orange : EntuleTheme.inkSoft)
+                .frame(width: 22, height: 22, alignment: .center)
+        }
+        .buttonStyle(.plain)
+        .frame(width: 28, height: 28, alignment: .center)
     }
 
-    private var rowKind: some View {
-        Text(item.kind.rawValue.uppercased())
-            .font(EntuleTypography.font(11, weight: .semibold))
-            .foregroundStyle(EntuleTheme.inkDim)
-            .frame(minWidth: AppWindowMetrics.sessionKindMinWidth, alignment: .leading)
+    private var rowIcon: some View {
+        Group {
+            if let image = resolvedIcon {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(EntuleTheme.orangeWash)
+                    .frame(width: 36, height: 36)
+                    .overlay {
+                        Image(systemName: fallbackSymbol)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(EntuleTheme.orange)
+                    }
+            }
+        }
+        .frame(width: 36, height: 36)
     }
 
     private var rowText: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(item.displayName)
-                .font(EntuleTypography.font(14, weight: .medium))
+                .font(EntuleTypography.font(15, weight: .semibold))
                 .foregroundStyle(EntuleTheme.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(item.value)
-                .font(EntuleTypography.font(12))
-                .foregroundStyle(EntuleTheme.inkDim)
-                .lineLimit(2)
-                .truncationMode(.middle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
+            if item.kind == .url {
+                Text(item.value)
+                    .font(EntuleTypography.font(12))
+                    .foregroundStyle(EntuleTheme.inkDim)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .frame(minWidth: AppWindowMetrics.sessionValueMinWidth, maxWidth: .infinity, alignment: .leading)
     }
 
     private var rowTrailing: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: AppWindowMetrics.spacingS) {
-                sourceBadge
-                removeButton
-            }
-
-            VStack(alignment: .trailing, spacing: AppWindowMetrics.spacingXS) {
-                sourceBadge
-                removeButton
-            }
+        HStack(spacing: AppWindowMetrics.spacingS) {
+            removeButton
         }
-    }
-
-    private var sourceBadge: some View {
-        Text(item.source)
-            .font(EntuleTypography.font(11, weight: .semibold))
-            .lineLimit(1)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(EntuleTheme.orangeWash)
-            .foregroundStyle(EntuleTheme.orange)
-            .overlay(
-                Capsule()
-                    .stroke(EntuleTheme.lineWarm, lineWidth: 1)
-            )
-            .clipShape(Capsule())
     }
 
     @ViewBuilder
@@ -97,4 +100,45 @@ struct SessionItemRow: View {
                 .buttonStyle(EntuleSecondaryButtonStyle())
         }
     }
+
+    private var resolvedIcon: NSImage? {
+        let cacheKey: String
+        switch item.kind {
+        case .app:
+            if let path = item.appPath, !path.isEmpty {
+                cacheKey = "app::\(path)"
+            } else {
+                return nil
+            }
+        case .file, .folder:
+            cacheKey = "\(item.kind.rawValue)::\(item.value)"
+        case .url:
+            return nil
+        }
+
+        if let cached = SessionItemIconCache.shared.object(forKey: cacheKey as NSString) {
+            return cached
+        }
+
+        let image = NSWorkspace.shared.icon(forFile: item.kind == .app ? (item.appPath ?? item.value) : item.value)
+        SessionItemIconCache.shared.setObject(image, forKey: cacheKey as NSString)
+        return image
+    }
+
+    private var fallbackSymbol: String {
+        switch item.kind {
+        case .app:
+            return "app.fill"
+        case .file:
+            return "doc.fill"
+        case .folder:
+            return "folder.fill"
+        case .url:
+            return "link"
+        }
+    }
+}
+
+private enum SessionItemIconCache {
+    static let shared = NSCache<NSString, NSImage>()
 }

@@ -59,7 +59,7 @@ final class ChromeDetector: DetectorProtocol {
 
         var warnings: [String] = []
         let items = DetectionParsing.parseBrowserRows(execution.output).compactMap { row -> SessionItem? in
-            guard let normalized = URLNormalizer.normalize(row.url) else {
+            guard let normalized = URLNormalizer.normalizeDetectedBrowserURL(row.url) else {
                 warnings.append("Chrome row skipped due to invalid URL")
                 return nil
             }

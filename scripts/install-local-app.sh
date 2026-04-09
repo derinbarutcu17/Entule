@@ -10,4 +10,9 @@ rm -rf "$TARGET_APP"
 ditto "$APP_DIR" "$TARGET_APP"
 codesign --verify --deep --strict "$TARGET_APP" >&2
 
+# Keep /Applications as the single runnable source of truth.
+if [[ "$APP_DIR" == "$ROOT_DIR/.build/local-app/Entule.app" ]]; then
+  rm -rf "$APP_DIR"
+fi
+
 echo "$TARGET_APP"

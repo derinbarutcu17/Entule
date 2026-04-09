@@ -5,7 +5,8 @@ final class DetectionCoordinator {
         "AppDetector",
         "FinderDetector",
         "SafariDetector",
-        "ChromeDetector"
+        "ChromeDetector",
+        "DiaDetector"
     ]
 
     private let detectors: [DetectorProtocol]
@@ -22,7 +23,8 @@ final class DetectionCoordinator {
                 AppDetector(),
                 FinderDetector(),
                 SafariDetector(),
-                ChromeDetector()
+                ChromeDetector(),
+                DiaDetector()
             ],
             logger: logger
         )

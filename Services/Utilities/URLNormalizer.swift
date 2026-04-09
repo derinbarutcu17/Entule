@@ -26,4 +26,25 @@ enum URLNormalizer {
 
         return components.url?.absoluteString
     }
+
+    static func normalizeDetectedBrowserURL(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let strict = normalize(trimmed) {
+            return strict
+        }
+
+        guard let components = URLComponents(string: trimmed),
+              let scheme = components.scheme?.lowercased() else {
+            return nil
+        }
+
+        // Browser internal pages can legitimately omit host and still be useful to restore.
+        let allowedInternalSchemes: Set<String> = [
+            "about", "chrome", "chromium", "dia", "arc", "edge", "brave", "file"
+        ]
+        guard allowedInternalSchemes.contains(scheme) else { return nil }
+        return trimmed
+    }
 }

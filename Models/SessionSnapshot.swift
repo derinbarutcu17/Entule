@@ -20,4 +20,10 @@ struct SessionSnapshot: Identifiable, Codable {
         self.shortcutName = shortcutName
         self.createdAt = createdAt
     }
+
+    var hasUserProvidedName: Bool {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return trimmed != createdAt.formatted(date: .abbreviated, time: .shortened)
+    }
 }

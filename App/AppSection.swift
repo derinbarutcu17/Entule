@@ -35,7 +35,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .presets:
             return "Build reusable launch sets for the work you repeat often."
         case .settings:
-            return "Testing tools, local storage controls, and diagnostics."
+            return "Privacy, access, and the few controls most people actually need."
         }
     }
 

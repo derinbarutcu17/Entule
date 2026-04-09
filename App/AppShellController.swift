@@ -5,6 +5,7 @@ import SwiftUI
 final class AppShellController: NSObject, NSWindowDelegate {
     private var primaryWindow: NSWindow?
     private var primaryHostingController: NSHostingController<EntuleDashboardView>?
+    private var hasAppliedLaunchDefaultSize = false
     private let appShellViewModel: AppShellViewModel
     private let workspaceViewModel: WorkspaceViewModel
 
@@ -20,6 +21,8 @@ final class AppShellController: NSObject, NSWindowDelegate {
         }
 
         if let existing = primaryWindow {
+            applyWindowConstraints(to: existing)
+            applyLaunchDefaultSizeIfNeeded(to: existing)
             reveal(window: existing, stealFocus: false)
             return
         }
@@ -27,7 +30,7 @@ final class AppShellController: NSObject, NSWindowDelegate {
         let view = EntuleDashboardView(appShellViewModel: appShellViewModel, workspaceViewModel: workspaceViewModel)
         let hostingController = NSHostingController(rootView: view)
 
-        let targetSize = NSSize(width: AppWindowMetrics.defaultWindowWidth, height: AppWindowMetrics.defaultWindowHeight)
+        let targetSize = launchContentSize(for: NSScreen.main)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: targetSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -43,14 +46,11 @@ final class AppShellController: NSObject, NSWindowDelegate {
         window.isOpaque = false
         window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(
-            width: AppWindowMetrics.minimumWindowWidth,
-            height: AppWindowMetrics.minimumWindowHeight
-        )
-        window.setContentSize(targetSize)
-        window.center()
+        applyWindowConstraints(to: window)
         window.delegate = self
         window.contentViewController = hostingController
+        applyLaunchFrame(to: window, center: true)
+        hasAppliedLaunchDefaultSize = true
 
         primaryWindow = window
         primaryHostingController = hostingController
@@ -107,6 +107,24 @@ final class AppShellController: NSObject, NSWindowDelegate {
         reveal(window: window, stealFocus: false)
     }
 
+
+    private func applyWindowConstraints(to window: NSWindow) {
+        let minimumSize = NSSize(
+            width: AppWindowMetrics.minimumWindowWidth,
+            height: AppWindowMetrics.minimumWindowHeight
+        )
+
+        window.contentMinSize = minimumSize
+        window.minSize = minimumSize
+
+        let safeWidth = max(window.frame.width, minimumSize.width)
+        let safeHeight = max(window.frame.height, minimumSize.height)
+
+        if window.frame.width < minimumSize.width || window.frame.height < minimumSize.height {
+            window.setContentSize(NSSize(width: safeWidth, height: safeHeight))
+        }
+    }
+
     private func reveal(window: NSWindow, stealFocus: Bool) {
         NSApp.setActivationPolicy(.regular)
         if stealFocus {
@@ -121,6 +139,54 @@ final class AppShellController: NSObject, NSWindowDelegate {
             window.orderFront(nil)
         } else {
             window.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    private func applyLaunchDefaultSizeIfNeeded(to window: NSWindow) {
+        guard !hasAppliedLaunchDefaultSize else { return }
+
+        let minWidth = AppWindowMetrics.minimumWindowWidth
+        let minHeight = AppWindowMetrics.minimumWindowHeight
+        let current = window.contentRect(forFrameRect: window.frame).size
+
+        // If macOS restored a stale minimum-sized window, promote it to the configured launch default.
+        if current.width <= (minWidth + 1), current.height <= (minHeight + 1) {
+            applyLaunchFrame(to: window, center: true)
+        }
+
+        hasAppliedLaunchDefaultSize = true
+    }
+
+    private func launchContentSize(for screen: NSScreen?) -> NSSize {
+        let minSize = NSSize(
+            width: AppWindowMetrics.minimumWindowWidth,
+            height: AppWindowMetrics.minimumWindowHeight
+        )
+        let targetSize = NSSize(
+            width: AppWindowMetrics.defaultWindowWidth,
+            height: AppWindowMetrics.defaultWindowHeight
+        )
+
+        guard let screen else { return targetSize }
+
+        // Keep a small margin from screen edges so macOS can position title bar comfortably.
+        let visible = screen.visibleFrame.insetBy(dx: 40, dy: 40).size
+        let maxWidth = max(minSize.width, visible.width)
+        let maxHeight = max(minSize.height, visible.height)
+
+        return NSSize(
+            width: min(max(targetSize.width, minSize.width), maxWidth),
+            height: min(max(targetSize.height, minSize.height), maxHeight)
+        )
+    }
+
+    private func applyLaunchFrame(to window: NSWindow, center: Bool) {
+        let size = launchContentSize(for: window.screen ?? NSScreen.main)
+        let frameRect = window.frameRect(forContentRect: NSRect(origin: .zero, size: size))
+
+        window.setFrame(frameRect, display: false)
+        if center {
+            window.center()
         }
     }
 

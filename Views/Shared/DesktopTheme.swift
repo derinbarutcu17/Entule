@@ -119,6 +119,7 @@ struct EntuleSecondaryButtonStyle: ButtonStyle {
 struct EntuleInputField: ViewModifier {
     func body(content: Content) -> some View {
         content
+            .textFieldStyle(.plain)
             .padding(.horizontal, 14)
             .padding(.vertical, 11)
             .background(Color.white)

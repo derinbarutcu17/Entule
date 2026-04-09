@@ -1,20 +1,34 @@
 import Foundation
 
-final class SafariDetector: DetectorProtocol {
-    let name = "SafariDetector"
+final class DiaDetector: DetectorProtocol {
+    let name = "DiaDetector"
 
     func detect() async -> DetectorOutput {
         let script = #"""
-        tell application "Safari"
+        tell application "Dia"
             if not running then return "__NOT_RUNNING__"
             set rs to ASCII character 30
             set fs to ASCII character 31
             set outputRows to {}
             repeat with w in windows
                 try
-                    set t to current tab of w
-                    set rowText to ((name of t) & fs & (URL of t))
-                    set end of outputRows to rowText
+                    repeat with t in tabs of w
+                        set tabIsPinned to false
+                        try
+                            set tabIsPinned to isPinned of t
+                        end try
+
+                        if tabIsPinned is false then
+                            set rowText to ((title of t) & fs & (URL of t))
+                            set end of outputRows to rowText
+                        end if
+                    end repeat
+                on error
+                    try
+                        set t to active tab of w
+                        set rowText to ((title of t) & fs & (URL of t))
+                        set end of outputRows to rowText
+                    end try
                 end try
             end repeat
             if (count of outputRows) is 0 then return ""
@@ -32,7 +46,7 @@ final class SafariDetector: DetectorProtocol {
                 return DetectorOutput(
                     detectorName: name,
                     items: [],
-                    notes: ["Safari unavailable"],
+                    notes: ["Dia unavailable"],
                     warnings: [],
                     status: .unavailable
                 )
@@ -42,7 +56,7 @@ final class SafariDetector: DetectorProtocol {
                 detectorName: name,
                 items: [],
                 notes: [],
-                warnings: ["Safari detection failed: \(reason)"],
+                warnings: ["Dia detection failed: \(reason)"],
                 status: .failed
             )
         }
@@ -51,7 +65,7 @@ final class SafariDetector: DetectorProtocol {
             return DetectorOutput(
                 detectorName: name,
                 items: [],
-                notes: ["Safari not running"],
+                notes: ["Dia not running"],
                 warnings: [],
                 status: .notRunning
             )
@@ -60,7 +74,7 @@ final class SafariDetector: DetectorProtocol {
         var warnings: [String] = []
         let items = DetectionParsing.parseBrowserRows(execution.output).compactMap { row -> SessionItem? in
             guard let normalized = URLNormalizer.normalizeDetectedBrowserURL(row.url) else {
-                warnings.append("Safari row skipped due to invalid URL")
+                warnings.append("Dia row skipped due to invalid URL")
                 return nil
             }
 
@@ -68,7 +82,7 @@ final class SafariDetector: DetectorProtocol {
                 kind: .url,
                 displayName: row.title.isEmpty ? normalized : row.title,
                 value: normalized,
-                source: "detected-safari",
+                source: "detected-dia",
                 isSelected: true
             )
         }

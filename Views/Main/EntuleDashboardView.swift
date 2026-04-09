@@ -1,10 +1,10 @@
+import AppKit
 import SwiftUI
 
 struct EntuleDashboardView: View {
     @ObservedObject var appShellViewModel: AppShellViewModel
     @ObservedObject var workspaceViewModel: WorkspaceViewModel
-
-    @State private var selectedPreviewItemIDs: Set<UUID> = []
+    @State private var isQuickSaveHovered = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -14,17 +14,11 @@ struct EntuleDashboardView: View {
             )
 
             VStack(alignment: .leading, spacing: AppWindowMetrics.shellHeaderBottomSpacing) {
-                shellHeader(for: contentSize)
+                homeTopShell
+                    .frame(maxWidth: .infinity, alignment: .center)
 
-                ZStack(alignment: .bottomTrailing) {
-                    shellContent(for: contentSize)
-                    if appShellViewModel.activeSection != .home {
-                        floatingDock
-                            .padding(.trailing, AppWindowMetrics.spacingXS)
-                            .padding(.bottom, AppWindowMetrics.spacingXS)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                shellContent(for: contentSize)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .padding(.top, AppWindowMetrics.titlebarTopInset)
             .padding(.horizontal, AppWindowMetrics.outerPadding)
@@ -32,16 +26,6 @@ struct EntuleDashboardView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .entuleWindowBackground()
-        .onAppear(perform: syncPreviewSelection)
-        .onChange(of: workspaceViewModel.lastSnapshot?.id) { _ in
-            syncPreviewSelection()
-        }
-    }
-
-    private func shellHeader(for contentSize: CGSize) -> some View {
-        Text("Entule")
-            .font(EntuleTypography.font(headerFontSize(for: contentSize.width), weight: .semibold))
-            .foregroundStyle(EntuleTheme.ink)
     }
 
     private func shellContent(for contentSize: CGSize) -> some View {
@@ -55,74 +39,187 @@ struct EntuleDashboardView: View {
     }
 
     private func homeScene(in size: CGSize) -> some View {
-        let frames = HomeLayout.make(in: size)
-        let utilityButtonHeight = frames.utilityFrame.height / 2 - frames.utilitySpacing / 2
+        let compact = size.width < 900
+        let saveSize = heroOrbSize(for: size.width, primary: true, compact: compact)
+        let resumeSize = heroOrbSize(for: size.width, primary: false, compact: compact)
+        let contentSpacing = min(max(size.width * 0.04, 28), 68)
+        let topSpacing = size.height < 690 ? 26.0 : 40.0
 
-        return ZStack(alignment: .topLeading) {
-            homeOrb(
-                title: "Save\nSession",
-                frame: frames.saveFrame,
-                action: { appShellViewModel.showSaveSession() },
-                disabled: workspaceViewModel.isBusy,
-                accessory: .curvedText(lastSaveLabel)
-            )
+        return VStack(spacing: 0) {
+            Spacer(minLength: topSpacing)
 
-            homeOrb(
-                title: "Resume\nSession",
-                frame: frames.resumeFrame,
-                action: {
-                    Task { _ = await workspaceViewModel.resumeLastSnapshot(selectedItemIDs: selectedPreviewItemIDs) }
-                },
-                disabled: !canResumeSelection,
-                accessory: .none
-            )
+            heroComposition(saveSize: saveSize, resumeSize: resumeSize, spacing: contentSpacing)
+                .frame(maxWidth: .infinity, alignment: .center)
 
-            previewChecklistCard(frame: frames.previewFrame)
+            Spacer(minLength: 40)
 
-            homeOrb(
-                title: selectedItemsLabel,
-                frame: frames.inspectFrame,
-                action: { appShellViewModel.inspectCheckpoint() },
-                disabled: workspaceViewModel.lastSnapshot == nil,
-                accessory: .none
-            )
+            summaryStrip
+                .frame(maxWidth: .infinity, alignment: .center)
 
-            VStack(spacing: frames.utilitySpacing) {
-                HomeUtilityButton(
-                    width: frames.utilityFrame.width,
-                    height: utilityButtonHeight,
-                    action: { appShellViewModel.openSettings() }
-                ) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: frames.tier == .compact ? 24 : 28, weight: .regular))
-                }
-
-                HomeUtilityButton(
-                    width: frames.utilityFrame.width,
-                    height: utilityButtonHeight,
-                    action: { appShellViewModel.openPresets() }
-                ) {
-                    VStack(spacing: frames.tier == .compact ? 3 : 4) {
-                        Text("Presets")
-                            .font(EntuleTypography.font(frames.tier == .compact ? 14 : 17, weight: .medium))
-                        Image(systemName: "plus.square.on.square")
-                            .font(.system(size: frames.tier == .compact ? 15 : 18, weight: .regular))
-                    }
-                }
-            }
-            .frame(width: frames.utilityFrame.width, height: frames.utilityFrame.height, alignment: .top)
-            .offset(x: frames.utilityFrame.minX, y: frames.utilityFrame.minY)
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var secondaryScene: some View {
-        ScrollView {
-            activeSectionPage
-                .frame(maxWidth: AppWindowMetrics.shellContentMaxWidth, alignment: .topLeading)
-                .padding(.trailing, AppWindowMetrics.shellDockReservedWidth)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+    private var homeTopShell: some View {
+        HStack(spacing: AppWindowMetrics.spacingM) {
+            Text("Entule")
+                .font(EntuleTypography.font(26, weight: .bold))
+                .foregroundStyle(EntuleTheme.ink)
+
+            Spacer(minLength: 0)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppWindowMetrics.spacingS) {
+                    topNavigationButton(title: "Home", section: .home)
+                    topNavigationButton(title: "Save", section: .saveSession)
+                    if workspaceViewModel.lastSnapshot != nil {
+                        topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
+                    }
+                    topNavigationButton(title: "Presets", section: .presets)
+                    topNavigationButton(title: "Settings", section: .settings)
+                }
+
+                VStack(alignment: .trailing, spacing: AppWindowMetrics.spacingS) {
+                    HStack(spacing: AppWindowMetrics.spacingS) {
+                        topNavigationButton(title: "Home", section: .home)
+                        topNavigationButton(title: "Save", section: .saveSession)
+                        if workspaceViewModel.lastSnapshot != nil {
+                            topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
+                        }
+                    }
+                    HStack(spacing: AppWindowMetrics.spacingS) {
+                        topNavigationButton(title: "Presets", section: .presets)
+                        topNavigationButton(title: "Settings", section: .settings)
+                    }
+                }
+            }
         }
+        .padding(.horizontal, 26)
+        .padding(.vertical, 16)
+        .background(Color.white.opacity(0.76))
+        .overlay(
+            Capsule()
+                .stroke(EntuleTheme.lineSoft, lineWidth: 1)
+        )
+        .clipShape(Capsule())
+        .shadow(color: Color.black.opacity(0.04), radius: 18, y: 12)
+        .frame(maxWidth: 980)
+    }
+
+    private func heroComposition(saveSize: CGFloat, resumeSize: CGFloat, spacing: CGFloat) -> some View {
+        HStack(alignment: .center, spacing: spacing) {
+            ZStack(alignment: .bottomLeading) {
+                homeHeroOrb(
+                    title: "Save Session",
+                    icon: .assetPNG("one-point-circle"),
+                    size: saveSize,
+                    subtitle: nil,
+                    style: .primary,
+                    titleLineSpacing: -6,
+                    disabled: workspaceViewModel.isBusy,
+                    action: { appShellViewModel.showSaveSession() }
+                )
+
+                quickSaveOrb
+                    .offset(x: -62, y: 64)
+            }
+
+            homeHeroOrb(
+                title: "Resume Session",
+                icon: .system("arrow.clockwise"),
+                size: resumeSize,
+                subtitle: workspaceViewModel.canResumeLastSession ? itemCountLabel : "No checkpoint yet",
+                style: .secondary,
+                titleLineSpacing: 0,
+                disabled: !workspaceViewModel.canResumeLastSession,
+                action: { Task { _ = await workspaceViewModel.resumeLastSnapshot() } }
+            )
+        }
+    }
+
+    private func homeHeroOrb(
+        title: String,
+        icon: HomeHeroIcon,
+        size: CGFloat,
+        subtitle: String?,
+        style: HomeHeroOrbStyle,
+        titleLineSpacing: CGFloat,
+        disabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        HomeHeroOrb(
+            title: title,
+            icon: icon,
+            size: size,
+            subtitle: subtitle,
+            style: style,
+            titleLineSpacing: titleLineSpacing,
+            disabled: disabled,
+            action: action
+        )
+    }
+
+    private var summaryStrip: some View {
+        HStack(spacing: AppWindowMetrics.spacingM) {
+            summaryLabel(systemImage: "clock", text: lastSaveInlineLabel)
+            summaryDivider
+            if shouldShowSessionName {
+                summaryLabel(systemImage: "text.bubble", text: sessionNameLabel)
+                summaryDivider
+            }
+            Button {
+                appShellViewModel.inspectCheckpoint()
+            } label: {
+                summaryLabel(systemImage: "shippingbox", text: itemCountLabel)
+            }
+            .buttonStyle(.plain)
+            .disabled(workspaceViewModel.lastSnapshot == nil)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 14)
+        .background(Color.white.opacity(0.74))
+        .overlay(
+            Capsule()
+                .stroke(EntuleTheme.lineSoft, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 999, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 16, y: 10)
+    }
+
+    private func summaryLabel(systemImage: String, text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(EntuleTheme.orange)
+            Text(text)
+                .font(EntuleTypography.font(13, weight: .semibold))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+    }
+
+    private var summaryDivider: some View {
+        Circle()
+            .fill(EntuleTheme.lineSoft)
+            .frame(width: 4, height: 4)
+    }
+
+    private func topNavigationButton(title: String, section: AppSection) -> some View {
+        TopNavigationButton(
+            title: title,
+            isActive: appShellViewModel.activeSection == section,
+            action: { appShellViewModel.navigate(to: section) }
+        )
+    }
+
+    private var secondaryScene: some View {
+        activeSectionPage
+            .frame(maxWidth: AppWindowMetrics.shellContentMaxWidth, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
@@ -159,131 +256,57 @@ struct EntuleDashboardView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func previewChecklistCard(frame: CGRect) -> some View {
-        let tier = HomeLayout.make(in: CGSize(width: frame.maxX + 1, height: frame.maxY + 1)).tier
-        let items = previewItems
+    private var lastSaveInlineLabel: String {
+        guard let snapshot = workspaceViewModel.lastSnapshot else { return "No checkpoint yet" }
+        return snapshot.createdAt.formatted(date: .abbreviated, time: .shortened)
+    }
 
-        return HomeBlobCard(interactiveSurface: false) {
-            VStack(alignment: .leading, spacing: tier == .compact ? 5 : 6) {
-                if items.isEmpty {
-                    Text("No saved\nitems yet")
-                        .font(EntuleTypography.font(tier == .compact ? 14 : 18, weight: .medium))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.leading)
-                } else {
-                    ForEach(items) { item in
-                        Button {
-                            togglePreviewItem(item.id)
-                        } label: {
-                            HStack(spacing: tier == .compact ? 6 : 8) {
-                                Image(systemName: selectedPreviewItemIDs.contains(item.id) ? "checkmark.square.fill" : "square")
-                                    .font(.system(size: tier == .compact ? 10 : 12, weight: .semibold))
-                                Text(item.displayName)
-                                    .font(EntuleTypography.font(tier == .compact ? 12 : 15))
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                            }
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: tier == .compact ? 18 : AppWindowMetrics.homePreviewRowHeight, alignment: .leading)
-                        }
-                        .buttonStyle(.plain)
-                    }
+    private var itemCountLabel: String {
+        let count = workspaceViewModel.lastSnapshot?.items.count ?? 0
+        return count == 1 ? "1 item" : "\(count) items"
+    }
 
-                    if hiddenItemCount > 0 {
-                        Button("Inspect all") { appShellViewModel.inspectCheckpoint() }
-                            .font(EntuleTypography.font(tier == .compact ? 10 : 12, weight: .semibold))
-                            .foregroundStyle(Color.white.opacity(0.9))
-                            .buttonStyle(.plain)
-                            .padding(.top, tier == .compact ? 2 : 4)
+    private var sessionNameLabel: String {
+        guard let snapshot = workspaceViewModel.lastSnapshot else { return "No session name" }
+        let trimmed = snapshot.note.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Untitled session" : trimmed
+    }
+
+    private var shouldShowSessionName: Bool {
+        workspaceViewModel.lastSnapshot?.hasUserProvidedName == true
+    }
+
+    private var quickSaveOrb: some View {
+        Button {
+            Task { _ = await workspaceViewModel.quickSaveCurrentSession() }
+        } label: {
+            Circle()
+                .fill(EntuleTheme.primaryButtonGradient)
+                .frame(width: 101, height: 101)
+                .overlay {
+                    VStack(spacing: 5) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text("Quick Save")
+                            .font(EntuleTypography.font(11, weight: .bold))
+                            .multilineTextAlignment(.center)
                     }
+                    .foregroundStyle(Color.white)
                 }
-            }
-            .padding(.horizontal, tier == .compact ? 12 : AppWindowMetrics.panelPadding * 0.9)
-            .padding(.vertical, tier == .compact ? 12 : AppWindowMetrics.panelPadding * 0.85)
-            .frame(width: frame.width, height: frame.height, alignment: .topLeading)
-        }
-        .offset(x: frame.minX, y: frame.minY)
-    }
-
-    private func homeOrb(
-        title: String,
-        frame: CGRect,
-        action: @escaping () -> Void,
-        disabled: Bool,
-        accessory: HomeOrbAccessory
-    ) -> some View {
-        HomeOrbButton(
-            title: title,
-            size: frame.width,
-            fontSize: orbFontSize(for: frame.width),
-            disabled: disabled,
-            accessory: accessory,
-            action: action
-        )
-        .offset(x: frame.minX, y: frame.minY)
-    }
-
-    private var floatingDock: some View {
-        VStack(alignment: .trailing, spacing: AppWindowMetrics.floatingDockSpacing) {
-            ForEach(AppSection.allCases.filter { $0 != .home }) { section in
-                FloatingSectionButton(
-                    section: section,
-                    isActive: appShellViewModel.activeSection == section,
-                    action: { appShellViewModel.navigate(to: section) }
+                .scaleEffect(isQuickSaveHovered ? 1.04 : 1)
+                .shadow(
+                    color: EntuleTheme.orange.opacity(isQuickSaveHovered ? 0.26 : 0.2),
+                    radius: isQuickSaveHovered ? 16 : 12,
+                    y: isQuickSaveHovered ? 11 : 8
                 )
-            }
-
-            FloatingSectionButton(section: .home, isActive: false) {
-                appShellViewModel.showHome()
-            }
+                .animation(.easeOut(duration: 0.16), value: isQuickSaveHovered)
         }
-    }
-
-    private var previewItems: [SessionItem] {
-        guard let snapshot = workspaceViewModel.lastSnapshot else { return [] }
-        return Array(snapshot.items.prefix(5))
-    }
-
-    private var hiddenItemCount: Int {
-        guard let snapshot = workspaceViewModel.lastSnapshot else { return 0 }
-        return max(snapshot.items.count - previewItems.count, 0)
-    }
-
-    private var selectedItemsLabel: String {
-        let selectedCount = selectedPreviewCount
-        return selectedCount == 1 ? "1 Item" : "\(selectedCount) Items"
-    }
-
-    private var selectedPreviewCount: Int {
-        guard let snapshot = workspaceViewModel.lastSnapshot else { return 0 }
-        return snapshot.items.filter { selectedPreviewItemIDs.contains($0.id) }.count
-    }
-
-    private var canResumeSelection: Bool {
-        workspaceViewModel.canResumeLastSession && selectedPreviewCount > 0
-    }
-
-    private var lastSaveLabel: String {
-        guard let snapshot = workspaceViewModel.lastSnapshot else {
-            return "save a checkpoint"
+        .buttonStyle(.plain)
+        .disabled(workspaceViewModel.isBusy)
+        .accessibilityLabel("Quick Save Session")
+        .onHover { hovering in
+            isQuickSaveHovered = hovering
         }
-        return "last save: \(snapshot.createdAt.formatted(date: .abbreviated, time: .shortened))"
-    }
-
-    private func togglePreviewItem(_ id: UUID) {
-        if selectedPreviewItemIDs.contains(id) {
-            selectedPreviewItemIDs.remove(id)
-        } else {
-            selectedPreviewItemIDs.insert(id)
-        }
-    }
-
-    private func syncPreviewSelection() {
-        guard let snapshot = workspaceViewModel.lastSnapshot else {
-            selectedPreviewItemIDs = []
-            return
-        }
-        selectedPreviewItemIDs = Set(snapshot.items.map(\.id))
     }
 
     private func emptyState(title: String, message: String) -> some View {
@@ -299,144 +322,210 @@ struct EntuleDashboardView: View {
         .entulePanel()
     }
 
-    private func headerFontSize(for width: CGFloat) -> CGFloat {
-        if width < 960 { return 42 }
-        if width < 1180 { return 52 }
-        return 60
-    }
-
-    private func orbFontSize(for size: CGFloat) -> CGFloat {
-        if size >= 380 { return 68 }
-        if size >= 250 { return 40 }
-        return 18
+    private func heroOrbSize(for width: CGFloat, primary: Bool, compact: Bool) -> CGFloat {
+        if primary {
+            return min(max(compact ? width * 0.32 : width * 0.28, 240), 360)
+        }
+        return min(max(compact ? width * 0.26 : width * 0.22, 210), 310)
     }
 }
 
-private enum HomeOrbAccessory {
-    case none
-    case curvedText(String)
-}
-
-private struct HomeOrbButton: View {
+private struct TopNavigationButton: View {
     let title: String
-    let size: CGFloat
-    let fontSize: CGFloat
-    let disabled: Bool
-    let accessory: HomeOrbAccessory
+    let isActive: Bool
     let action: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
-            Circle()
-                .fill(EntuleTheme.primaryButtonGradient)
+            Text(title)
+                .font(EntuleTypography.font(13, weight: .semibold))
+                .foregroundStyle(isActive ? Color.white : EntuleTheme.ink)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(backgroundFill)
                 .overlay(
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.white.opacity(0.16), Color.clear],
-                                center: .topLeading,
-                                startRadius: 8,
-                                endRadius: size * 0.75
-                            )
-                        )
-                        .blendMode(.screen)
+                    Capsule()
+                        .stroke(isActive ? Color.clear : EntuleTheme.lineWarm, lineWidth: 1)
                 )
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(isHovered ? 0.28 : 0.14), lineWidth: size * 0.01)
-                )
-                .overlay(
-                    Circle()
-                        .stroke(Color.black.opacity(0.08), lineWidth: size * 0.02)
-                        .blur(radius: size * 0.045)
-                        .offset(y: size * 0.025)
-                        .mask(Circle().fill(LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)))
-                )
-                .overlay {
-                    Text(title)
-                        .font(EntuleTypography.font(fontSize, weight: .medium))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.white)
-                        .padding(size * 0.17)
-                        .minimumScaleFactor(0.7)
-                }
-                .overlay(alignment: .bottom) {
-                    if case let .curvedText(detail) = accessory {
-                        ArcText(text: detail, radius: size * 0.395, fontSize: max(fontSize * 0.33, 12))
-                            .frame(width: size, height: size)
-                            .offset(y: size * 0.03)
-                    }
-                }
-                .frame(width: size, height: size)
-                .scaleEffect(isHovered && !disabled ? 1.03 : 1)
-                .opacity(disabled ? 0.42 : 1)
-                .shadow(color: EntuleTheme.orange.opacity(disabled ? 0.08 : (isHovered ? 0.26 : 0.18)), radius: isHovered ? 22 : 14, y: isHovered ? 12 : 8)
-                .animation(.easeOut(duration: 0.18), value: isHovered)
-                .contentShape(Circle())
+                .clipShape(Capsule())
+                .scaleEffect(isHovered ? 1.02 : 1)
+                .shadow(color: shadowColor, radius: isHovered ? 14 : 10, y: isHovered ? 9 : 6)
+                .animation(.easeOut(duration: 0.16), value: isHovered)
         }
         .buttonStyle(.plain)
-        .disabled(disabled)
         .onHover { hovering in
             isHovered = hovering
         }
     }
+
+    private var backgroundFill: some ShapeStyle {
+        if isActive {
+            return AnyShapeStyle(EntuleTheme.primaryButtonGradient)
+        }
+
+        return AnyShapeStyle(isHovered ? EntuleTheme.orangeWash : Color.white.opacity(0.92))
+    }
+
+    private var shadowColor: Color {
+        if isActive {
+            return EntuleTheme.orange.opacity(isHovered ? 0.22 : 0.16)
+        }
+
+        return Color.black.opacity(isHovered ? 0.05 : 0.03)
+    }
 }
 
-private struct HomeBlobCard<Content: View>: View {
-    let interactiveSurface: Bool
-    let content: Content
+private enum HomeHeroOrbStyle {
+    case primary
+    case secondary
+}
+
+private enum HomeHeroIcon {
+    case system(String)
+    case assetPNG(String)
+}
+
+private struct HomeHeroOrb: View {
+    let title: String
+    let icon: HomeHeroIcon
+    let size: CGFloat
+    let subtitle: String?
+    let style: HomeHeroOrbStyle
+    let titleLineSpacing: CGFloat
+    let disabled: Bool
+    let action: () -> Void
 
     @State private var isHovered = false
 
-    init(interactiveSurface: Bool = true, @ViewBuilder content: () -> Content) {
-        self.interactiveSurface = interactiveSurface
-        self.content = content()
-    }
-
     var body: some View {
-        content
-            .background(EntuleTheme.primaryButtonGradient)
-            .clipShape(RoundedRectangle(cornerRadius: AppWindowMetrics.panelCornerRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppWindowMetrics.panelCornerRadius, style: .continuous)
-                    .stroke(Color.white.opacity(isHovered ? 0.25 : 0.12), lineWidth: 1)
-            )
-            .shadow(color: EntuleTheme.orange.opacity(isHovered ? 0.24 : 0.18), radius: isHovered ? 18 : 12, y: isHovered ? 10 : 8)
-            .scaleEffect(interactiveSurface && isHovered ? 1.02 : 1)
-            .animation(.easeOut(duration: 0.18), value: isHovered)
+        VStack(spacing: 14) {
+            Button(action: action) {
+                Circle()
+                    .fill(backgroundFill)
+                    .overlay(
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [Color.white.opacity(style == .primary ? 0.18 : 0.10), Color.clear],
+                                    center: .topLeading,
+                                    startRadius: 8,
+                                    endRadius: size * 0.78
+                                )
+                            )
+                            .blendMode(.screen)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(borderColor, lineWidth: 1)
+                    )
+                    .overlay {
+                        VStack(spacing: size * 0.035) {
+                            iconView
+                            Text(title)
+                                .font(EntuleTypography.font(textSize, weight: .bold))
+                                .lineSpacing(titleLineSpacing)
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(textColor)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.72)
+                        }
+                        .padding(size * 0.16)
+                    }
+                    .frame(width: size, height: size)
+                    .scaleEffect(isHovered && !disabled ? 1.03 : 1)
+                    .opacity(disabled ? 0.45 : 1)
+                    .shadow(color: shadowColor, radius: isHovered ? 24 : 16, y: isHovered ? 14 : 10)
+                    .animation(.easeOut(duration: 0.18), value: isHovered)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(disabled)
             .onHover { hovering in
                 isHovered = hovering
             }
-    }
-}
 
-private struct ArcText: View {
-    let text: String
-    let radius: CGFloat
-    let fontSize: CGFloat
-
-    var body: some View {
-        let characters = Array(text)
-        let totalSpan = min(max(Double(characters.count - 1) * 4.2, 26), 62)
-        let startAngle = 90 + (totalSpan / 2)
-        let step = characters.count > 1 ? totalSpan / Double(characters.count - 1) : 0
-
-        return ZStack {
-            ForEach(Array(characters.enumerated()), id: \.offset) { index, character in
-                let angle = startAngle - (Double(index) * step)
-                let radians = angle * .pi / 180
-                Text(String(character))
-                    .font(EntuleTypography.font(fontSize, weight: .medium))
-                    .foregroundStyle(Color.white)
-                    .position(
-                        x: radius + cos(radians) * radius,
-                        y: radius + sin(radians) * radius
-                    )
-                    .rotationEffect(.degrees(angle - 90))
+            if let subtitle {
+                Text(subtitle)
+                    .font(EntuleTypography.font(12, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.inkDim)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .frame(width: max(size * 0.82, 180))
             }
         }
-        .frame(width: radius * 2, height: radius * 2)
+    }
+
+    private var backgroundFill: some ShapeStyle {
+        switch style {
+        case .primary:
+            return AnyShapeStyle(EntuleTheme.primaryButtonGradient)
+        case .secondary:
+            return AnyShapeStyle(Color.white.opacity(0.96))
+        }
+    }
+
+    private var borderColor: Color {
+        switch style {
+        case .primary:
+            return Color.white.opacity(isHovered ? 0.22 : 0.12)
+        case .secondary:
+            return EntuleTheme.lineSoft
+        }
+    }
+
+    private var iconColor: Color {
+        style == .primary ? Color.white.opacity(0.94) : EntuleTheme.inkDim
+    }
+
+    private var textColor: Color {
+        style == .primary ? .white : EntuleTheme.ink
+    }
+
+    private var textSize: CGFloat {
+        if size >= 320 { return 42 }
+        if size >= 250 { return 32 }
+        return 24
+    }
+
+    private var iconSize: CGFloat {
+        if size >= 320 { return 42 }
+        if size >= 250 { return 34 }
+        return 26
+    }
+
+    @ViewBuilder
+    private var iconView: some View {
+        switch icon {
+        case .system(let symbol):
+            Image(systemName: symbol)
+                .font(.system(size: iconSize, weight: .medium))
+                .foregroundStyle(iconColor)
+        case .assetPNG(let name):
+            if let url = Bundle.main.url(forResource: name, withExtension: "png"),
+               let image = NSImage(contentsOf: url) {
+                Image(nsImage: image)
+                    .resizable()
+                    .renderingMode(.template)
+                    .interpolation(.high)
+                    .foregroundStyle(iconColor)
+                    .frame(width: iconSize, height: iconSize)
+            } else {
+                Image(systemName: "circle.dashed")
+                    .font(.system(size: iconSize, weight: .medium))
+                    .foregroundStyle(iconColor)
+            }
+        }
+    }
+
+    private var shadowColor: Color {
+        switch style {
+        case .primary:
+            return EntuleTheme.orange.opacity(disabled ? 0.08 : (isHovered ? 0.22 : 0.16))
+        case .secondary:
+            return Color.black.opacity(isHovered ? 0.08 : 0.05)
+        }
     }
 }

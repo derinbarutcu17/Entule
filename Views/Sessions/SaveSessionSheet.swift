@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SaveSessionSheet: View {
     @StateObject var viewModel: SaveSessionViewModel
@@ -8,236 +9,396 @@ struct SaveSessionSheet: View {
     @State private var manualURL = ""
     @State private var confirmSaveWithZeroItems = false
     @State private var isSaving = false
+    @State private var manualAddExpanded = false
+    @FocusState private var manualURLFocused: Bool
 
     private var groupedItems: [SessionItemKind: [SessionItem]] {
         Dictionary(grouping: viewModel.items, by: { $0.kind })
     }
 
+    private var orderedKinds: [SessionItemKind] {
+        [.app, .url, .file, .folder]
+    }
+
     var body: some View {
         AppPaneContainer {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
-                    Text(summaryLine)
-                        .font(EntuleTypography.font(13, weight: .medium))
-                        .foregroundStyle(EntuleTheme.inkDim)
-
-                    actionStrip
-
-                    ViewThatFits(in: .horizontal) {
-                        topSplit(horizontal: true)
-                        topSplit(horizontal: false)
-                    }
-
-                    manualAddPanel
-                    saveDetailsPanel
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-            }
-        } toolbar: {
-            Button("Close") { closeView() }
-                .buttonStyle(EntuleSecondaryButtonStyle())
-                .disabled(isSaving)
-            Spacer()
-            Button(viewModel.isDetecting ? "Detecting…" : (isSaving ? "Saving…" : "Save Checkpoint")) {
-                saveSnapshotWithChecks()
-            }
-            .buttonStyle(EntulePrimaryButtonStyle())
-            .disabled(viewModel.isDetecting || isSaving)
+            sessionItemsPanel
         }
         .task {
-            viewModel.isDetecting = true
-            let result = await workspaceViewModel.detectCurrentSession()
-            viewModel.loadDetectionResult(result)
-            viewModel.isDetecting = false
+            await detectSession()
         }
         .onChange(of: manualURL) { _ in viewModel.clearInputError() }
         .alert("Save empty snapshot?", isPresented: $confirmSaveWithZeroItems) {
             Button("Cancel", role: .cancel) {}
             Button("Save") { persistAndClose() }
         } message: {
-            Text("No items are selected. Entule will save a checkpoint with only your note and shortcut.")
+            Text("No items are selected. Entule will save a checkpoint with only the session title.")
         }
-    }
-
-    private var actionStrip: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: AppWindowMetrics.spacingS) {
-                Button("Select All") { viewModel.selectAll() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                Button("Deselect All") { viewModel.deselectAll() }
-                    .buttonStyle(EntuleSecondaryButtonStyle())
-                Spacer()
-                if viewModel.isDetecting { ProgressView() }
-            }
-            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                HStack(spacing: AppWindowMetrics.spacingS) {
-                    Button("Select All") { viewModel.selectAll() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Button("Deselect All") { viewModel.deselectAll() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                }
-                if viewModel.isDetecting { ProgressView() }
-            }
-        }
-        .disabled(viewModel.isDetecting || isSaving)
-    }
-
-    @ViewBuilder
-    private func topSplit(horizontal: Bool) -> some View {
-        if horizontal {
-            HStack(alignment: .top, spacing: AppWindowMetrics.spacingM) {
-                detectionPanel
-                    .frame(minWidth: AppWindowMetrics.detectionColumnMinWidth, maxWidth: 280, alignment: .topLeading)
-                sessionItemsPanel
-            }
-        } else {
-            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
-                detectionPanel
-                sessionItemsPanel
-            }
-        }
-    }
-
-    private var detectionPanel: some View {
-        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-            Text("Detection")
-                .font(EntuleTypography.font(18, weight: .semibold))
-                .foregroundStyle(EntuleTheme.ink)
-
-            if !viewModel.detectorStatusLines.isEmpty {
-                statusPanel(title: "Detector Status", rows: viewModel.detectorStatusLines, tint: EntuleTheme.inkDim)
-            }
-
-            if !viewModel.detectionWarnings.isEmpty {
-                statusPanel(title: "Detection Warnings", rows: viewModel.detectionWarnings, tint: EntuleTheme.amber)
-            }
-
-            if let inputError = viewModel.inputErrorMessage {
-                Text(inputError)
-                    .font(EntuleTypography.font(12, weight: .medium))
-                    .foregroundStyle(EntuleTheme.danger)
-            }
-        }
-        .entulePanel()
     }
 
     private var sessionItemsPanel: some View {
-        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-            Text("Session Items")
-                .font(EntuleTypography.font(18, weight: .semibold))
-                .foregroundStyle(EntuleTheme.ink)
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
+            Text(summaryLine)
+                .font(EntuleTypography.font(13, weight: .medium))
+                .foregroundStyle(EntuleTheme.inkDim)
+
+            sessionItemsHeader
 
             if viewModel.items.isEmpty && !viewModel.isDetecting {
                 VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
                     Text("No Session Items Found")
                         .font(EntuleTypography.font(18, weight: .semibold))
                         .foregroundStyle(EntuleTheme.ink)
-                    Text("Add URLs or use Add App, Add File, or Add Folder to build the checkpoint manually.")
+                    Text("Use Add manually to include apps, files, folders, or links in this checkpoint.")
                         .font(EntuleTypography.font(13))
                         .foregroundStyle(EntuleTheme.inkDim)
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             } else {
-                List {
-                    ForEach(SessionItemKind.allCases, id: \.self) { kind in
-                        if let indexList = groupedItems[kind], !indexList.isEmpty {
-                            Section(kind.rawValue.uppercased()) {
-                                ForEach(indexList) { sectionItem in
-                                    if let binding = binding(for: sectionItem.id) {
-                                        SessionItemRow(item: binding) {
-                                            viewModel.removeItem(sectionItem)
-                                        }
-                                        .listRowBackground(Color.clear)
-                                    }
-                                }
+                sessionItemsScrollView
+
+                if !viewModel.hasDetectedLinks {
+                    Text("Browser links appear here when Safari, Chrome, or Dia automation access is available in macOS settings.")
+                        .font(EntuleTypography.font(12))
+                        .foregroundStyle(EntuleTheme.inkDim)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !browserDetectorStatusLines.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(browserDetectorStatusLines, id: \.self) { line in
+                                Text(line)
+                                    .font(EntuleTypography.font(12))
+                                    .foregroundStyle(EntuleTheme.inkSoft)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     }
                 }
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
-                .listStyle(.plain)
-                .frame(minHeight: AppWindowMetrics.listMinHeight)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .entulePanel()
     }
 
-    private var manualAddPanel: some View {
-        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-            Text("Manual Add")
-                .font(EntuleTypography.font(18, weight: .semibold))
+    private var sessionItemsScrollView: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                ForEach(orderedKinds, id: \.self) { kind in
+                    if let sectionItems = groupedItems[kind], !sectionItems.isEmpty {
+                        sectionBlock(kind: kind, items: sectionItems)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(.vertical, 2)
+        }
+        .scrollIndicators(.visible)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .layoutPriority(1)
+    }
+
+    private var sessionItemsHeader: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
+            Text("Session Items")
+                .font(EntuleTypography.font(20, weight: .semibold))
                 .foregroundStyle(EntuleTheme.ink)
 
+            Text("Choose what should be reopened the next time you resume this session.")
+                .font(EntuleTypography.font(13))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .fixedSize(horizontal: false, vertical: true)
+
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: AppWindowMetrics.spacingS) {
-                    Button("Add App…") { viewModel.addManualAppsFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Button("Add File…") { viewModel.addManualFilesFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Button("Add Folder…") { viewModel.addManualFoldersFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Spacer(minLength: 0)
-                }
+                TextField("Session name (optional)", text: $viewModel.note)
+                    .entuleInputField()
+                    .padding(.trailing, 128)
+                    .overlay(alignment: .trailing) {
+                        saveCheckpointOrb
+                    }
+
                 VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                    Button("Add App…") { viewModel.addManualAppsFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Button("Add File…") { viewModel.addManualFilesFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
-                    Button("Add Folder…") { viewModel.addManualFoldersFromPicker() }
-                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    TextField("Session name (optional)", text: $viewModel.note)
+                        .entuleInputField()
+                    HStack {
+                        Spacer(minLength: 0)
+                        saveCheckpointOrb
+                    }
                 }
             }
 
+            Text("Leave this empty and Entule will use the current date and time.")
+                .font(EntuleTypography.font(12))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .fixedSize(horizontal: false, vertical: true)
+
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: AppWindowMetrics.spacingS) {
-                    TextField("Add URL", text: $manualURL)
-                        .entuleInputField()
-                    Button("Add URL") {
-                        if viewModel.addManualURL(raw: manualURL) { manualURL = "" }
+                    Button("Select All") { viewModel.selectAll() }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    Button("Deselect All") { viewModel.deselectAll() }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    Button("Refresh Items") {
+                        Task { await detectSession() }
                     }
                     .buttonStyle(EntuleSecondaryButtonStyle())
+                    addManuallyButton
+                    if viewModel.isDetecting {
+                        ProgressView()
+                            .padding(.leading, 4)
+                    }
                 }
-                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                    TextField("Add URL", text: $manualURL)
-                        .entuleInputField()
-                    Button("Add URL") {
-                        if viewModel.addManualURL(raw: manualURL) { manualURL = "" }
+
+                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
+                    Button("Select All") { viewModel.selectAll() }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    Button("Deselect All") { viewModel.deselectAll() }
+                        .buttonStyle(EntuleSecondaryButtonStyle())
+                    Button("Refresh Items") {
+                        Task { await detectSession() }
                     }
                     .buttonStyle(EntuleSecondaryButtonStyle())
+                    addManuallyButton
+                    if viewModel.isDetecting {
+                        ProgressView()
+                    }
                 }
+            }
+
+            if let inputError = viewModel.inputErrorMessage {
+                Text(inputError)
+                    .font(EntuleTypography.font(12, weight: .medium))
+                    .foregroundStyle(EntuleTheme.danger)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .disabled(viewModel.isDetecting || isSaving)
-        .entulePanel()
     }
 
-    private var saveDetailsPanel: some View {
-        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-            Text("Save Details")
-                .font(EntuleTypography.font(18, weight: .semibold))
-                .foregroundStyle(EntuleTheme.ink)
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: AppWindowMetrics.spacingS) {
-                    TextField("Note", text: $viewModel.note)
-                        .entuleInputField()
-                    TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                        .entuleInputField()
+    private var saveCheckpointOrb: some View {
+        Button {
+            saveSnapshotWithChecks()
+        } label: {
+            Circle()
+                .fill(EntuleTheme.primaryButtonGradient)
+                .frame(width: 112, height: 112)
+                .overlay {
+                    VStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 22, weight: .semibold))
+                        Text(viewModel.isDetecting ? "Wait" : (isSaving ? "Saving" : "Save"))
+                            .font(EntuleTypography.font(15, weight: .bold))
+                    }
+                    .foregroundStyle(Color.white)
                 }
-                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                    TextField("Note", text: $viewModel.note)
-                        .entuleInputField()
-                    TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                        .entuleInputField()
+                .shadow(color: EntuleTheme.orange.opacity(0.18), radius: 16, y: 10)
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isDetecting || isSaving)
+        .accessibilityLabel("Save Checkpoint")
+    }
+
+    private func manualAddButton(title: String, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
+            .buttonStyle(EntuleSecondaryButtonStyle())
+    }
+
+    private var addManuallyButton: some View {
+        Button("Add manually") {
+            manualAddExpanded.toggle()
+        }
+        .buttonStyle(EntulePrimaryButtonStyle())
+        .popover(isPresented: $manualAddExpanded, arrowEdge: .bottom) {
+            manualAddMenu
+        }
+    }
+
+    private var manualAddMenu: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+            manualAddButton(title: "Add App") {
+                collapseManualAdd()
+                viewModel.addManualAppsFromPicker()
+            }
+            manualAddButton(title: "Add File") {
+                collapseManualAdd()
+                viewModel.addManualFilesFromPicker()
+            }
+            manualAddButton(title: "Add Folder") {
+                collapseManualAdd()
+                viewModel.addManualFoldersFromPicker()
+            }
+
+            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                TextField("Add link", text: $manualURL)
+                    .entuleInputField()
+                    .frame(width: 220)
+                    .focused($manualURLFocused)
+
+                manualAddButton(title: "Add Link") {
+                    if viewModel.addManualURL(raw: manualURL) {
+                        manualURL = ""
+                        manualURLFocused = false
+                        collapseManualAdd()
+                    }
                 }
             }
         }
-        .entulePanel()
+        .padding(14)
+        .frame(minWidth: 250)
+        .background(Color.white.opacity(0.96))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(EntuleTheme.lineWarm, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.08), radius: 18, y: 12)
     }
 
     private var summaryLine: String {
-        "Detected \(viewModel.detectedCount) items from \(viewModel.detectedSourceCount) sources • Selected \(viewModel.selectedCount)"
+        "\(viewModel.selectedCount) selected of \(viewModel.detectedCount) items"
+    }
+
+    private var appCardColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: 132), spacing: AppWindowMetrics.spacingS, alignment: .top)]
+    }
+
+    private func sectionBlock(kind: SessionItemKind, items: [SessionItem]) -> some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+            HStack(spacing: AppWindowMetrics.spacingS) {
+                Text(kindSectionTitle(kind))
+                    .font(EntuleTypography.font(18, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.ink)
+
+                Text("\(items.count)")
+                    .font(EntuleTypography.font(13, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.inkDim)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.85))
+                    .clipShape(Capsule())
+
+                Spacer(minLength: 0)
+            }
+
+            if kind == .app {
+                LazyVGrid(columns: appCardColumns, alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                    ForEach(items) { item in
+                        appCard(for: item)
+                    }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
+                    ForEach(items) { item in
+                        linkLikeRow(for: item)
+                    }
+                }
+            }
+        }
+        .padding(AppWindowMetrics.spacingS)
+        .background(Color.white.opacity(0.52))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(EntuleTheme.lineSoft, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func appCard(for item: SessionItem) -> some View {
+        let selected = item.isSelected
+        return ZStack(alignment: .topLeading) {
+            VStack(spacing: 10) {
+                appIcon(for: item)
+                    .frame(width: 54, height: 54)
+                    .padding(.top, 8)
+
+                Text(item.displayName)
+                    .font(EntuleTypography.font(14, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.ink)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Button("Remove") { viewModel.removeItem(item) }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 152, alignment: .top)
+            .background(selected ? EntuleTheme.orange.opacity(0.14) : Color.white.opacity(0.92))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(selected ? EntuleTheme.orange : EntuleTheme.lineSoft, lineWidth: selected ? 1.5 : 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .onTapGesture {
+                toggleSelection(for: item.id)
+            }
+
+            if selected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.orange)
+                    .padding(8)
+            }
+        }
+    }
+
+    private func linkLikeRow(for item: SessionItem) -> some View {
+        let selected = item.isSelected
+        return HStack(alignment: .center, spacing: AppWindowMetrics.spacingS) {
+            appIcon(for: item)
+                .frame(width: 40, height: 40)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.displayName)
+                    .font(EntuleTypography.font(15, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.ink)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                if item.kind == .url {
+                    Text(item.value)
+                        .font(EntuleTypography.font(13))
+                        .foregroundStyle(EntuleTheme.inkDim)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            Button("Remove") { viewModel.removeItem(item) }
+                .buttonStyle(EntuleSecondaryButtonStyle())
+        }
+        .padding(10)
+        .background(selected ? EntuleTheme.orange.opacity(0.12) : Color.white.opacity(0.88))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(selected ? EntuleTheme.orange : EntuleTheme.lineSoft, lineWidth: selected ? 1.5 : 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture {
+            toggleSelection(for: item.id)
+        }
+    }
+
+    private func appIcon(for item: SessionItem) -> some View {
+        Group {
+            if let image = resolvedIcon(for: item) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(EntuleTheme.orangeWash)
+                    .overlay {
+                        Image(systemName: fallbackSymbol(for: item.kind))
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(EntuleTheme.orange)
+                    }
+            }
+        }
     }
 
     private func saveSnapshotWithChecks() {
@@ -260,24 +421,85 @@ struct SaveSessionSheet: View {
         return $viewModel.items[idx]
     }
 
-    private func statusPanel(title: String, rows: [String], tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
-            Text(title)
-                .font(EntuleTypography.font(16, weight: .semibold))
-                .foregroundStyle(EntuleTheme.ink)
-            ForEach(rows, id: \.self) { row in
-                Text("• \(row)")
-                    .font(EntuleTypography.font(12))
-                    .foregroundStyle(tint)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+    private func toggleSelection(for id: UUID) {
+        guard let idx = viewModel.items.firstIndex(where: { $0.id == id }) else { return }
+        viewModel.items[idx].isSelected.toggle()
+    }
+
+    private func kindSectionTitle(_ kind: SessionItemKind) -> String {
+        switch kind {
+        case .app:
+            return "Apps"
+        case .file:
+            return "Files"
+        case .folder:
+            return "Folders"
+        case .url:
+            return "Links"
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .entulePanel()
     }
 
     private func closeView() {
         onClose?()
     }
+
+    private func collapseManualAdd() {
+        guard manualAddExpanded else { return }
+        withAnimation(.easeOut(duration: 0.18)) {
+            manualAddExpanded = false
+        }
+        manualURLFocused = false
+    }
+
+    private var browserDetectorStatusLines: [String] {
+        viewModel.detectorStatusLines.filter { line in
+            let lower = line.lowercased()
+            return lower.contains("dia:") || lower.contains("chrome:") || lower.contains("safari:")
+        }
+    }
+
+    private func detectSession() async {
+        viewModel.isDetecting = true
+        let result = await workspaceViewModel.detectCurrentSession()
+        viewModel.loadDetectionResult(result)
+        viewModel.isDetecting = false
+    }
+
+    private func resolvedIcon(for item: SessionItem) -> NSImage? {
+        let cacheKey: String
+        switch item.kind {
+        case .app:
+            guard let path = item.appPath, !path.isEmpty else { return nil }
+            cacheKey = "app::\(path)"
+        case .file, .folder:
+            cacheKey = "\(item.kind.rawValue)::\(item.value)"
+        case .url:
+            return nil
+        }
+
+        if let cached = SaveSessionIconCache.shared.object(forKey: cacheKey as NSString) {
+            return cached
+        }
+
+        let image = NSWorkspace.shared.icon(forFile: item.kind == .app ? (item.appPath ?? item.value) : item.value)
+        SaveSessionIconCache.shared.setObject(image, forKey: cacheKey as NSString)
+        return image
+    }
+
+    private func fallbackSymbol(for kind: SessionItemKind) -> String {
+        switch kind {
+        case .app:
+            return "app.fill"
+        case .file:
+            return "doc.fill"
+        case .folder:
+            return "folder.fill"
+        case .url:
+            return "link"
+        }
+    }
+}
+
+private enum SaveSessionIconCache {
+    static let shared = NSCache<NSString, NSImage>()
 }

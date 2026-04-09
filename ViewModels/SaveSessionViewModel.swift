@@ -12,6 +12,10 @@ final class SaveSessionViewModel: ObservableObject {
     @Published var detectorStatusLines: [String] = []
     @Published var inputErrorMessage: String?
 
+    var defaultSnapshotTitle: String {
+        Date().formatted(date: .abbreviated, time: .shortened)
+    }
+
     func loadDetectionResult(_ result: DetectionResult) {
         items = result.items
         detectionNotes = result.notes
@@ -29,6 +33,10 @@ final class SaveSessionViewModel: ObservableObject {
 
     var detectedSourceCount: Int {
         Set(items.map(\.source)).count
+    }
+
+    var hasDetectedLinks: Bool {
+        items.contains(where: { $0.kind == .url })
     }
 
     func shouldConfirmEmptySelection() -> Bool {
@@ -151,8 +159,9 @@ final class SaveSessionViewModel: ObservableObject {
     }
 
     func toSnapshot() -> SessionSnapshot {
-        SessionSnapshot(
-            note: note,
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        return SessionSnapshot(
+            note: trimmedNote.isEmpty ? defaultSnapshotTitle : trimmedNote,
             items: items.filter(\.isSelected),
             shortcutName: shortcutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : shortcutName,
             createdAt: Date()

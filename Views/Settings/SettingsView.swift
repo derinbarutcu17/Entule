@@ -12,142 +12,167 @@ struct SettingsView: View {
 
     var body: some View {
         AppPaneContainer {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Permissions")
-                            .font(EntuleTypography.font(18, weight: .semibold))
-                            .foregroundStyle(EntuleTheme.ink)
-
-                        Toggle("Show automation hint", isOn: $viewModel.showPermissionsHint)
-                            .foregroundStyle(EntuleTheme.ink)
-
-                        if viewModel.showPermissionsHint {
-                            Text(viewModel.permissionsHint)
-                                .font(EntuleTypography.font(13))
-                                .foregroundStyle(EntuleTheme.inkDim)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .entulePanel()
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Testing & Storage")
-                            .font(EntuleTypography.font(18, weight: .semibold))
-                            .foregroundStyle(EntuleTheme.ink)
-
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: AppWindowMetrics.spacingS) {
-                                storageButtons
-                                Spacer(minLength: 0)
-                            }
-                            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                                storageButtons
-                            }
-                        }
-
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: AppWindowMetrics.spacingS) {
-                                resetButtons
-                                Spacer(minLength: 0)
-                            }
-                            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                                resetButtons
-                            }
-                        }
-
-                        if !viewModel.feedbackMessage.isEmpty {
-                            Text(viewModel.feedbackMessage)
-                                .font(EntuleTypography.font(12))
-                                .foregroundStyle(EntuleTheme.inkDim)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .entulePanel()
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Diagnostics")
-                            .font(EntuleTypography.font(18, weight: .semibold))
-                            .foregroundStyle(EntuleTheme.ink)
-
-                        Text(viewModel.diagnosticsText)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(EntuleTheme.ink)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(minHeight: AppWindowMetrics.diagnosticsMinHeight, alignment: .topLeading)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: AppWindowMetrics.spacingS) {
-                                diagnosticsButtons
-                                Spacer(minLength: 0)
-                            }
-                            VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                                diagnosticsButtons
-                            }
-                        }
-                    }
-                    .entulePanel()
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            settingsScrollContainer
         }
-        .alert("Clear last snapshot?", isPresented: $confirmClearSnapshot) {
+        .alert("Clear your last saved session?", isPresented: $confirmClearSnapshot) {
             Button("Cancel", role: .cancel) {}
             Button("Clear") {
                 viewModel.clearLastSnapshot()
             }
         } message: {
-            Text("This removes only the last saved checkpoint snapshot.")
+            Text("This removes only the most recent checkpoint. Your presets stay untouched.")
         }
-        .alert("Reset all local Entule data?", isPresented: $confirmResetAllState) {
+        .alert("Reset Entule on this Mac?", isPresented: $confirmResetAllState) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) {
                 viewModel.resetAllLocalState()
             }
         } message: {
-            Text("This removes presets and snapshots from local storage, then recreates a clean empty state.")
+            Text("This removes your saved presets and checkpoint from this Mac and starts Entule fresh.")
         }
     }
 
-    private var storageButtons: some View {
-        Group {
-            Button("Reveal Entule Data Folder") {
+    @ViewBuilder
+    private var settingsScrollContainer: some View {
+        if #available(macOS 14.0, *) {
+            ScrollView {
+                settingsContent
+            }
+            .scrollClipDisabled()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else {
+            ScrollView {
+                settingsContent
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private var settingsContent: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingL) {
+            accessPanel
+            dataPanel
+            resetPanel
+
+            if !viewModel.feedbackMessage.isEmpty {
+                Text(viewModel.feedbackMessage)
+                    .font(EntuleTypography.font(14, weight: .semibold))
+                    .foregroundStyle(EntuleTheme.orangeDeep)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private var accessPanel: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
+            Text("Permissions & Access")
+                .font(EntuleTypography.font(22, weight: .bold))
+                .foregroundStyle(EntuleTheme.ink)
+
+            Text("Entule may need macOS Automation access to detect open tabs in Safari, Chrome, or Dia, and to detect Finder windows accurately.")
+                .font(EntuleTypography.font(15, weight: .medium))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(viewModel.permissionsHint)
+                .font(EntuleTypography.font(15))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppWindowMetrics.spacingS) {
+                    Button("Request Browser Access") {
+                        viewModel.requestBrowserAutomationAccess()
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+
+                    Button("Open Automation Settings") {
+                        viewModel.openAutomationSettings()
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+                }
+
+                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                    Button("Request Browser Access") {
+                        viewModel.requestBrowserAutomationAccess()
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+
+                    Button("Open Automation Settings") {
+                        viewModel.openAutomationSettings()
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .entulePanel()
+    }
+
+    private var dataPanel: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
+            Text("Your Data")
+                .font(EntuleTypography.font(22, weight: .bold))
+                .foregroundStyle(EntuleTheme.ink)
+
+            Text(viewModel.dataSummary)
+                .font(EntuleTypography.font(15))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button("Open Entule Folder") {
                 viewModel.revealDataFolder()
             }
             .buttonStyle(EntuleSecondaryButtonStyle())
-            Button("Reveal state.json") {
-                viewModel.revealStateFile()
-            }
-            .buttonStyle(EntuleSecondaryButtonStyle())
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .entulePanel()
     }
 
-    private var resetButtons: some View {
-        Group {
-            Button("Clear Last Snapshot") {
-                confirmClearSnapshot = true
-            }
-            .buttonStyle(EntuleSecondaryButtonStyle())
-            Button("Reset All Local Data", role: .destructive) {
-                confirmResetAllState = true
-            }
-            .buttonStyle(EntuleSecondaryButtonStyle())
-        }
-    }
+    private var resetPanel: some View {
+        VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
+            Text("Reset")
+                .font(EntuleTypography.font(22, weight: .bold))
+                .foregroundStyle(EntuleTheme.ink)
 
-    private var diagnosticsButtons: some View {
-        Group {
-            Button("Refresh Diagnostics") {
-                viewModel.refreshDiagnostics()
+            Text("Use these only if you want to remove saved information from this Mac.")
+                .font(EntuleTypography.font(15))
+                .foregroundStyle(EntuleTheme.inkDim)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppWindowMetrics.spacingS) {
+                    Button("Clear Last Saved Session") {
+                        confirmClearSnapshot = true
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+
+                    Button("Reset Entule", role: .destructive) {
+                        confirmResetAllState = true
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+
+                    Spacer(minLength: 0)
+                }
+
+                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                    Button("Clear Last Saved Session") {
+                        confirmClearSnapshot = true
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+
+                    Button("Reset Entule", role: .destructive) {
+                        confirmResetAllState = true
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+                }
             }
-            .buttonStyle(EntuleSecondaryButtonStyle())
-            Button("Copy Diagnostics") {
-                viewModel.copyDiagnostics()
-            }
-            .buttonStyle(EntuleSecondaryButtonStyle())
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .entulePanel()
     }
 }

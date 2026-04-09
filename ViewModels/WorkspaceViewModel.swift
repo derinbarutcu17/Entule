@@ -133,6 +133,27 @@ final class WorkspaceViewModel: ObservableObject {
         return await appState.environment.detectionCoordinator.detectAll()
     }
 
+    func quickSaveCurrentSession() async -> Bool {
+        guard !isBusy else { return false }
+
+        let detection = await detectCurrentSession()
+        let quickItems = detection.items.map { item in
+            var updated = item
+            updated.isSelected = true
+            return updated
+        }
+
+        let snapshot = SessionSnapshot(
+            note: Date().formatted(date: .abbreviated, time: .shortened),
+            items: quickItems,
+            shortcutName: nil,
+            createdAt: Date()
+        )
+
+        saveSnapshot(snapshot)
+        return true
+    }
+
     var currentModel: AppStateModel {
         appState.model
     }

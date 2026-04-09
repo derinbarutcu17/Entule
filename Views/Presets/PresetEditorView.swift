@@ -7,6 +7,7 @@ struct PresetEditorView: View {
     let onSave: (Preset) -> Void
 
     @State private var newURLText = ""
+    @State private var attemptedInvalidSave = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppWindowMetrics.spacingM) {
@@ -32,24 +33,31 @@ struct PresetEditorView: View {
         .padding(AppWindowMetrics.outerPadding)
         .entuleWindowBackground()
         .frame(minWidth: AppWindowMetrics.editorMinWidth, minHeight: AppWindowMetrics.editorMinHeight)
+        .onChange(of: viewModel.name) { _ in
+            if viewModel.canSave {
+                attemptedInvalidSave = false
+            }
+        }
     }
 
     private var fieldsPanel: some View {
         VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: AppWindowMetrics.spacingS) {
-                    TextField("Preset Name", text: $viewModel.name)
-                        .entuleInputField()
-                    TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                        .entuleInputField()
+            TextField("Preset Name", text: $viewModel.name)
+                .entuleInputField()
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(nameFieldInvalid ? EntuleTheme.danger : Color.clear, lineWidth: 1.5)
                 }
+                .shadow(
+                    color: nameFieldInvalid ? EntuleTheme.danger.opacity(0.28) : Color.clear,
+                    radius: 10,
+                    y: 0
+                )
 
-                VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
-                    TextField("Preset Name", text: $viewModel.name)
-                        .entuleInputField()
-                    TextField("Shortcut Name (optional)", text: $viewModel.shortcutName)
-                        .entuleInputField()
-                }
+            if nameFieldInvalid {
+                Text("Preset name is required.")
+                    .font(EntuleTypography.font(12, weight: .medium))
+                    .foregroundStyle(EntuleTheme.danger)
             }
             addControls
         }
@@ -132,15 +140,22 @@ struct PresetEditorView: View {
 
     private var saveButton: some View {
         Button("Save") {
+            guard viewModel.canSave else {
+                attemptedInvalidSave = true
+                return
+            }
             onSave(viewModel.toPreset())
             dismiss()
         }
         .buttonStyle(EntulePrimaryButtonStyle())
-        .disabled(!viewModel.canSave)
     }
 
     private func addURL() {
         viewModel.addURLItem(raw: newURLText)
         newURLText = ""
+    }
+
+    private var nameFieldInvalid: Bool {
+        attemptedInvalidSave && !viewModel.canSave
     }
 }

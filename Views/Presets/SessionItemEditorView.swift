@@ -6,14 +6,14 @@ struct SessionItemEditorView: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: AppWindowMetrics.spacingS) {
-                typePicker
+                typeBadge
                 textFields
                 selectedToggle
             }
 
             VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
                 HStack(spacing: AppWindowMetrics.spacingS) {
-                    typePicker
+                    typeBadge
                     selectedToggle
                 }
                 textFields
@@ -22,13 +22,19 @@ struct SessionItemEditorView: View {
         .padding(.vertical, AppWindowMetrics.spacingXS)
     }
 
-    private var typePicker: some View {
-        Picker("Type", selection: $item.kind) {
-            ForEach(SessionItemKind.allCases, id: \.self) { kind in
-                Text(kind.rawValue.capitalized).tag(kind)
-            }
-        }
-        .frame(minWidth: AppWindowMetrics.pickerMinWidth)
+    private var typeBadge: some View {
+        Text(item.kind.rawValue.capitalized)
+            .font(EntuleTypography.font(12, weight: .semibold))
+            .foregroundStyle(EntuleTheme.inkDim)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.92))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(EntuleTheme.lineSoft, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .frame(minWidth: AppWindowMetrics.pickerMinWidth, alignment: .leading)
     }
 
     private var textFields: some View {
