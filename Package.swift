@@ -20,7 +20,8 @@ let package = Package(
                 "dist",
                 "scripts",
                 ".build",
-                "Tests"
+                "Tests",
+                "site"
             ]
         ),
         .testTarget(

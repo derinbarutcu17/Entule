@@ -16,11 +16,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build DMG
+        run: bash ./scripts/create-dmg.sh
+
       - name: Build ZIP
         run: bash ./scripts/create-zip.sh
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          shasum -a 256 Entule.dmg Entule.zip > SHA256SUMS.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/Entule.zip
+          files: |
+            dist/Entule.dmg
+            dist/Entule.zip
+            dist/SHA256SUMS.txt
           generate_release_notes: true
