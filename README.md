@@ -4,12 +4,12 @@ Entule is a macOS app for saving a work checkpoint and reopening it later.
 
 ## Fastest way to get it
 
-- Download: https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg
-- Site: https://derinbarutcu17.github.io/Entule/
+- Download: https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.zip
+- Terminal: `curl -L -o ~/Downloads/Entule.zip https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.zip && open ~/Downloads/Entule.zip`
 
 ## Use
 
-1. Open the DMG
+1. Open the ZIP
 2. Drag Entule to Applications
 3. Launch Entule
 4. Save a session or resume your last one
@@ -19,7 +19,7 @@ Entule is a macOS app for saving a work checkpoint and reopening it later.
 ```bash
 swift build
 ./scripts/install-local-app.sh
-./scripts/create-dmg.sh
+./scripts/create-zip.sh
 ```
 
 ## Notes
