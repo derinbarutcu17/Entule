@@ -2,7 +2,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$ROOT_DIR/Info.plist")"
 DIST_DIR="$ROOT_DIR/dist"
 STAGE_DIR="$DIST_DIR/dmg-stage"
 APP_DIR="$("$ROOT_DIR/scripts/build-local-app.sh" "$DIST_DIR/Entule.app")"
