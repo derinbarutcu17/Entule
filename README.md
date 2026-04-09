@@ -32,6 +32,9 @@ bash ./scripts/create-zip.sh
 - Confirm file size after download:
   - DMG should be around a few MB, not KB.
   - ZIP should also be around a few MB.
+- If macOS says “Apple could not verify Entule is free of malware” on first launch:
+  - `bash ./scripts/unblock-downloaded-app.sh /Applications/Entule.app`
+  - Then launch Entule again.
 
 ## Notes
 
