@@ -155,7 +155,6 @@ struct EntuleDashboardView: View {
                     disabled: workspaceViewModel.isBusy,
                     action: { appShellViewModel.showSaveSession() }
                 )
-                .tutorialAnchor(.save)
 
                 quickSaveOrb
                     .offset(x: -62, y: 64)
