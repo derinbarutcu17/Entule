@@ -1,11 +1,29 @@
 # Entule
 
-## Basic Download
+## Installation
 
-- Download link: https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg
-- Terminal download: `curl -fL --retry 3 -o ~/Downloads/Entule.dmg https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg && open ~/Downloads/Entule.dmg`
-- If macOS shows “Apple could not verify Entule is free of malware,” right-click `Entule.app` in Applications, choose `Open`, then confirm `Open` once.
-- Best long-term fix (official): Apple Developer ID signing + Apple notarization for each release. That removes this warning for users by default.
+Because Entule is an independent, open-source tool, macOS requires a quick workaround to bypass Gatekeeper on the first launch. 
+
+**Option 1: The Magic Command (Recommended)**
+Downloading via Terminal completely bypasses Apple's quarantine warning. Open Terminal and paste this:
+
+```bash
+curl -fL --retry 3 -o ~/Downloads/Entule.dmg [https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg) && open ~/Downloads/Entule.dmg
+```
+
+Drag `Entule.app` to your Applications folder, and it will open normally.
+
+**Option 2: The Manual Download**
+1. Download [Entule.dmg](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg).
+2. Drag `Entule.app` into your Applications folder.
+3. **Right-click** (or Control-click) `Entule.app` and select **Open**. Confirm the prompt. *(You only have to do this once).*
+
+<details>
+  <summary>Getting an "App is damaged" error?</summary>
+  macOS sometimes aggressively flags browser downloads. Open Terminal and run this to strip the quarantine flag:
+  <br>
+  <code>xattr -cr /Applications/Entule.app</code>
+</details>
 
 ## What Entule Does And How To Use It
 
