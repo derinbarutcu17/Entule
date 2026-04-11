@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-final class AppDetector: DetectorProtocol {
+final class AppDetector {
     let name = "AppDetector"
 
     func detect() async -> DetectorOutput {

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 struct ShortcutExecutionResult {
     var name: String
@@ -11,7 +12,7 @@ struct ShortcutExecutionResult {
 final class ShortcutRunner {
     private let logger: Logger
 
-    init(logger: Logger = .shared) {
+    init(logger: Logger = Logger(subsystem: "com.entule.app", category: "ShortcutRunner")) {
         self.logger = logger
     }
 

@@ -416,11 +416,6 @@ struct SaveSessionSheet: View {
         closeView()
     }
 
-    private func binding(for id: UUID) -> Binding<SessionItem>? {
-        guard let idx = viewModel.items.firstIndex(where: { $0.id == id }) else { return nil }
-        return $viewModel.items[idx]
-    }
-
     private func toggleSelection(for id: UUID) {
         guard let idx = viewModel.items.firstIndex(where: { $0.id == id }) else { return }
         viewModel.items[idx].isSelected.toggle()

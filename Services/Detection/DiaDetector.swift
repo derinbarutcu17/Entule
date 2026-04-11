@@ -1,6 +1,6 @@
 import Foundation
 
-final class DiaDetector: DetectorProtocol {
+final class DiaDetector {
     let name = "DiaDetector"
 
     func detect() async -> DetectorOutput {

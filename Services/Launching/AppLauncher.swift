@@ -1,27 +1,18 @@
 import AppKit
 import Foundation
+import OSLog
 
-final class NSWorkspaceLauncher: Launcher {
+final class AppLauncher: Launcher {
     private let workspace: NSWorkspace
-    private let appOpenAwaiter: AppOpenAwaiter
-    private let appLaunchResolver: AppLaunchResolver
-    private let fallbackAppLauncher: FallbackAppLauncher
     private let shortcutRunner: ShortcutRunner
     private let logger: Logger
 
     init(
         workspace: NSWorkspace = .shared,
-        installedAppResolver: InstalledAppResolving? = nil,
-        fileChecker: FileExistenceChecking = FileManager.default,
-        fallbackAppLauncher: FallbackAppLauncher = FallbackAppLauncher(),
         shortcutRunner: ShortcutRunner = ShortcutRunner(),
-        logger: Logger = .shared
+        logger: Logger = Logger(subsystem: "com.entule.app", category: "AppLauncher")
     ) {
         self.workspace = workspace
-        self.appOpenAwaiter = AppOpenAwaiter(opener: NSWorkspaceAppOpener(workspace: workspace))
-        let resolver = installedAppResolver ?? NSWorkspaceInstalledAppResolver(workspace: workspace)
-        self.appLaunchResolver = AppLaunchResolver(fileChecker: fileChecker, installedAppResolver: resolver)
-        self.fallbackAppLauncher = fallbackAppLauncher
         self.shortcutRunner = shortcutRunner
         self.logger = logger
     }
@@ -74,25 +65,69 @@ final class NSWorkspaceLauncher: Launcher {
     }
 
     private func launchApp(_ item: SessionItem, report: inout LaunchReport) async {
-        let resolution = appLaunchResolver.resolve(item: item)
+        guard let appURL = resolveAppURL(for: item) else {
+            report.failures.append(LaunchIssue(item: item, reason: "Could not resolve app path or bundle ID"))
+            return
+        }
 
-        switch resolution {
-        case let .resolved(appURL):
-            let openResult = await appOpenAwaiter.openApplication(at: appURL)
-            switch openResult {
-            case .success:
-                report.successes.append(item)
-            case let .failure(error):
-                if fallbackAppLauncher.launch(item: item, resolvedAppURL: appURL) {
-                    logger.info("Fallback launch succeeded for \(item.displayName)")
-                    report.successes.append(item)
-                } else {
-                    logger.error("App launch failed: \(item.displayName) :: \(error.message)")
-                    report.failures.append(LaunchIssue(item: item, reason: "\(error.message). Fallback open also failed"))
+        let config = NSWorkspace.OpenConfiguration()
+        do {
+            _ = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<NSRunningApplication, Error>) in
+                workspace.openApplication(at: appURL, configuration: config) { runningApp, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else if let runningApp = runningApp {
+                        continuation.resume(returning: runningApp)
+                    } else {
+                        continuation.resume(throwing: NSError(domain: "AppLauncher", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown launch error"]))
+                    }
                 }
             }
-        case let .failed(reason):
-            report.failures.append(LaunchIssue(item: item, reason: reason))
+            report.successes.append(item)
+        } catch {
+            if fallbackLaunch(item: item, resolvedAppURL: appURL) {
+                logger.info("Fallback launch succeeded for \(item.displayName)")
+                report.successes.append(item)
+            } else {
+                logger.error("App launch failed: \(item.displayName) :: \(error.localizedDescription)")
+                report.failures.append(LaunchIssue(item: item, reason: "\(error.localizedDescription). Fallback open also failed"))
+            }
+        }
+    }
+
+    private func resolveAppURL(for item: SessionItem) -> URL? {
+        if let appPath = item.appPath ?? (item.value.hasPrefix("/") ? item.value : nil),
+           FileManager.default.fileExists(atPath: appPath) {
+            return URL(fileURLWithPath: appPath)
+        }
+
+        if looksLikeBundleIdentifier(item.value) {
+            return workspace.urlForApplication(withBundleIdentifier: item.value)
+        }
+
+        return nil
+    }
+
+    private func fallbackLaunch(item: SessionItem, resolvedAppURL: URL) -> Bool {
+        let launchPath = "/usr/bin/open"
+        let arguments: [String]
+        
+        if looksLikeBundleIdentifier(item.value) {
+            arguments = ["-b", item.value]
+        } else {
+            arguments = ["-a", resolvedAppURL.path]
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: launchPath)
+        process.arguments = arguments
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
         }
     }
 
@@ -103,8 +138,7 @@ final class NSWorkspaceLauncher: Launcher {
             return
         }
 
-        let opened = workspace.open(URL(fileURLWithPath: path))
-        if opened {
+        if workspace.open(URL(fileURLWithPath: path)) {
             report.successes.append(item)
         } else {
             report.failures.append(LaunchIssue(item: item, reason: "NSWorkspace.open returned false"))
@@ -117,8 +151,7 @@ final class NSWorkspaceLauncher: Launcher {
             return
         }
 
-        let opened = workspace.open(url)
-        if opened {
+        if workspace.open(url) {
             report.successes.append(item)
         } else {
             report.failures.append(LaunchIssue(item: item, reason: "NSWorkspace.open returned false"))
@@ -155,4 +188,7 @@ final class NSWorkspaceLauncher: Launcher {
         return (deduped, skipped)
     }
 
+    private func looksLikeBundleIdentifier(_ value: String) -> Bool {
+        !value.contains("/") && value.contains(".")
+    }
 }

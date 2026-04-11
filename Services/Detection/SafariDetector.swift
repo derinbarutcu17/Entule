@@ -1,6 +1,6 @@
 import Foundation
 
-final class SafariDetector: DetectorProtocol {
+final class SafariDetector {
     let name = "SafariDetector"
 
     func detect() async -> DetectorOutput {

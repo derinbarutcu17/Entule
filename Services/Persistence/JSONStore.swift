@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 final class JSONStore: Store {
     private let fileManager: FileManager
@@ -6,7 +7,7 @@ final class JSONStore: Store {
     private let decoder: JSONDecoder
     private let logger: Logger
 
-    init(fileManager: FileManager = .default, logger: Logger = .shared) {
+    init(fileManager: FileManager = .default, logger: Logger = Logger(subsystem: "com.entule.app", category: "JSONStore")) {
         self.fileManager = fileManager
         self.logger = logger
 

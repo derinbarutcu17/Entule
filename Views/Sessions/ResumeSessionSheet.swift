@@ -3,7 +3,6 @@ import SwiftUI
 struct ResumeSessionSheet: View {
     @StateObject var viewModel: ResumeSessionViewModel
     @ObservedObject var workspaceViewModel: WorkspaceViewModel
-    var onClose: (() -> Void)? = nil
 
     @State private var running = false
 

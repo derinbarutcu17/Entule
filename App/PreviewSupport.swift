@@ -54,7 +54,7 @@ enum PreviewFactory {
         let environment = AppEnvironment(
             store: PreviewStore(model: makeAppStateModel(withSnapshot: withSnapshot, manyItems: manyItems)),
             launcher: PreviewLauncher(),
-            detectionCoordinator: DetectionCoordinator(detectors: []),
+            detectionCoordinator: DetectionCoordinator(),
             logger: .shared
         )
         let appState = AppState(environment: environment)

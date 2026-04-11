@@ -238,8 +238,7 @@ struct EntuleDashboardView: View {
                 if let snapshot = workspaceViewModel.lastSnapshot {
                     ResumeSessionSheet(
                         viewModel: ResumeSessionViewModel(snapshot: snapshot),
-                        workspaceViewModel: workspaceViewModel,
-                        onClose: { appShellViewModel.showHome() }
+                        workspaceViewModel: workspaceViewModel
                     )
                 } else {
                     emptyState(

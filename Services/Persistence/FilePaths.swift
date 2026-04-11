@@ -3,7 +3,7 @@ import Foundation
 enum FilePaths {
     static func applicationSupportDirectory(fileManager: FileManager = .default) throws -> URL {
         guard let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            throw AppError.persistenceFailed("Could not resolve Application Support directory")
+            throw AppError.failure("Could not resolve Application Support directory")
         }
 
         let directory = base.appendingPathComponent("Entule", isDirectory: true)
@@ -20,7 +20,7 @@ enum FilePaths {
 
     static func legacyStateFileURL(fileManager: FileManager = .default) throws -> URL {
         guard let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            throw AppError.persistenceFailed("Could not resolve Application Support directory")
+            throw AppError.failure("Could not resolve Application Support directory")
         }
 
         return base

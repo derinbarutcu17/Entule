@@ -1,33 +1,16 @@
 import Foundation
+import OSLog
 
 final class DetectionCoordinator {
-    static let supportedDetectorNames = [
-        "AppDetector",
-        "FinderDetector",
-        "SafariDetector",
-        "ChromeDetector",
-        "DiaDetector"
-    ]
-
-    private let detectors: [DetectorProtocol]
+    private let appDetector = AppDetector()
+    private let finderDetector = FinderDetector()
+    private let safariDetector = SafariDetector()
+    private let chromeDetector = ChromeDetector()
+    private let diaDetector = DiaDetector()
     private let logger: Logger
 
-    init(detectors: [DetectorProtocol], logger: Logger = .shared) {
-        self.detectors = detectors
+    init(logger: Logger = Logger(subsystem: "com.entule.app", category: "DetectionCoordinator")) {
         self.logger = logger
-    }
-
-    convenience init(logger: Logger = .shared) {
-        self.init(
-            detectors: [
-                AppDetector(),
-                FinderDetector(),
-                SafariDetector(),
-                ChromeDetector(),
-                DiaDetector()
-            ],
-            logger: logger
-        )
     }
 
     func detectAll() async -> DetectionResult {
@@ -38,11 +21,11 @@ final class DetectionCoordinator {
         var detectorOutputs: [DetectorOutput] = []
 
         await withTaskGroup(of: DetectorOutput.self) { group in
-            for detector in detectors {
-                group.addTask {
-                    await detector.detect()
-                }
-            }
+            group.addTask { await self.appDetector.detect() }
+            group.addTask { await self.finderDetector.detect() }
+            group.addTask { await self.safariDetector.detect() }
+            group.addTask { await self.chromeDetector.detect() }
+            group.addTask { await self.diaDetector.detect() }
 
             for await output in group {
                 merged.append(contentsOf: output.items)

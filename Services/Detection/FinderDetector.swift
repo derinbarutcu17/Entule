@@ -1,6 +1,6 @@
 import Foundation
 
-final class FinderDetector: DetectorProtocol {
+final class FinderDetector {
     let name = "FinderDetector"
 
     func detect() async -> DetectorOutput {

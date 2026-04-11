@@ -1,6 +1,6 @@
 import Foundation
 
-final class ChromeDetector: DetectorProtocol {
+final class ChromeDetector {
     let name = "ChromeDetector"
 
     func detect() async -> DetectorOutput {

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 struct AppEnvironment {
     var store: Store
@@ -8,8 +9,12 @@ struct AppEnvironment {
 
     static let live = AppEnvironment(
         store: JSONStore(),
-        launcher: NSWorkspaceLauncher(),
+        launcher: AppLauncher(),
         detectionCoordinator: DetectionCoordinator(),
         logger: .shared
     )
+}
+
+extension Logger {
+    static let shared = Logger(subsystem: "com.entule.app", category: "General")
 }

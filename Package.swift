@@ -16,10 +16,11 @@ let package = Package(
             exclude: [
                 "README.md",
                 "Info.plist",
+                "Makefile",
                 "Resources",
                 "dist",
-                "scripts",
                 ".build",
+                ".swiftpm",
                 "Tests",
                 "site"
             ]
