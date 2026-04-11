@@ -4,7 +4,9 @@ import SwiftUI
 struct EntuleDashboardView: View {
     @ObservedObject var appShellViewModel: AppShellViewModel
     @ObservedObject var workspaceViewModel: WorkspaceViewModel
+    @StateObject private var tutorialManager = TutorialManager()
     @State private var isQuickSaveHovered = false
+    @State private var didAutoTriggerTutorial = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -26,6 +28,35 @@ struct EntuleDashboardView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .entuleWindowBackground()
+        .overlay(alignment: .topTrailing) {
+            if appShellViewModel.activeSection == .home {
+                HelpButtonView {
+                    appShellViewModel.showHome()
+                    tutorialManager.startTutorial(force: true)
+                }
+                .padding(.top, AppWindowMetrics.titlebarTopInset + 8)
+                .padding(.trailing, AppWindowMetrics.outerPadding + 6)
+            }
+        }
+        .overlayPreferenceValue(TutorialBoundsKey.self) { anchors in
+            TutorialOverlayView(manager: tutorialManager, anchors: anchors)
+        }
+        .onAppear {
+            guard !didAutoTriggerTutorial else { return }
+            didAutoTriggerTutorial = true
+
+            DispatchQueue.main.async {
+                appShellViewModel.showHome()
+                tutorialManager.startIfNeeded()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .entuleResetTutorial)) { _ in
+            appShellViewModel.showHome()
+            tutorialManager.startTutorial(force: true)
+        }
+        .onChange(of: tutorialManager.currentStep) { step in
+            syncTutorialSection(for: step)
+        }
     }
 
     private func shellContent(for contentSize: CGSize) -> some View {
@@ -73,24 +104,28 @@ struct EntuleDashboardView: View {
                 HStack(spacing: AppWindowMetrics.spacingS) {
                     topNavigationButton(title: "Home", section: .home)
                     topNavigationButton(title: "Save", section: .saveSession)
-                    if workspaceViewModel.lastSnapshot != nil {
-                        topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
-                    }
+                        .tutorialAnchor(.save)
+                    topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
+                        .tutorialAnchor(.inspect)
                     topNavigationButton(title: "Presets", section: .presets)
+                        .tutorialAnchor(.presets)
                     topNavigationButton(title: "Settings", section: .settings)
+                        .tutorialAnchor(.settings)
                 }
 
                 VStack(alignment: .trailing, spacing: AppWindowMetrics.spacingS) {
                     HStack(spacing: AppWindowMetrics.spacingS) {
                         topNavigationButton(title: "Home", section: .home)
                         topNavigationButton(title: "Save", section: .saveSession)
-                        if workspaceViewModel.lastSnapshot != nil {
-                            topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
-                        }
+                            .tutorialAnchor(.save)
+                        topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
+                            .tutorialAnchor(.inspect)
                     }
                     HStack(spacing: AppWindowMetrics.spacingS) {
                         topNavigationButton(title: "Presets", section: .presets)
+                            .tutorialAnchor(.presets)
                         topNavigationButton(title: "Settings", section: .settings)
+                            .tutorialAnchor(.settings)
                     }
                 }
             }
@@ -120,6 +155,7 @@ struct EntuleDashboardView: View {
                     disabled: workspaceViewModel.isBusy,
                     action: { appShellViewModel.showSaveSession() }
                 )
+                .tutorialAnchor(.save)
 
                 quickSaveOrb
                     .offset(x: -62, y: 64)
@@ -135,6 +171,7 @@ struct EntuleDashboardView: View {
                 disabled: !workspaceViewModel.canResumeLastSession,
                 action: { Task { _ = await workspaceViewModel.resumeLastSnapshot() } }
             )
+            .tutorialAnchor(.resume)
         }
     }
 
@@ -214,6 +251,14 @@ struct EntuleDashboardView: View {
         )
     }
 
+    private func syncTutorialSection(for step: TutorialStep) {
+        guard tutorialManager.isActive, let section = step.preferredSection else { return }
+
+        DispatchQueue.main.async {
+            appShellViewModel.navigate(to: section)
+        }
+    }
+
     private var secondaryScene: some View {
         activeSectionPage
             .frame(maxWidth: AppWindowMetrics.shellContentMaxWidth, alignment: .topLeading)
@@ -249,7 +294,12 @@ struct EntuleDashboardView: View {
             case .presets:
                 PresetManagementView(workspaceViewModel: workspaceViewModel)
             case .settings:
-                SettingsView(workspaceViewModel: workspaceViewModel)
+                SettingsView(
+                    workspaceViewModel: workspaceViewModel,
+                    onResetTutorial: {
+                        appShellViewModel.showHome()
+                    }
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

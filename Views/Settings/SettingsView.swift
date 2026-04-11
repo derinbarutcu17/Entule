@@ -5,9 +5,11 @@ struct SettingsView: View {
 
     @State private var confirmClearSnapshot = false
     @State private var confirmResetAllState = false
+    let onResetTutorial: (() -> Void)?
 
-    init(workspaceViewModel: WorkspaceViewModel) {
+    init(workspaceViewModel: WorkspaceViewModel, onResetTutorial: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: SettingsViewModel(workspaceViewModel: workspaceViewModel))
+        self.onResetTutorial = onResetTutorial
     }
 
     var body: some View {
@@ -156,6 +158,12 @@ struct SettingsView: View {
                     }
                     .buttonStyle(EntuleSecondaryButtonStyle())
 
+                    Button("Reset Tutorial") {
+                        viewModel.resetTutorial()
+                        onResetTutorial?()
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+
                     Spacer(minLength: 0)
                 }
 
@@ -167,6 +175,12 @@ struct SettingsView: View {
 
                     Button("Reset Entule", role: .destructive) {
                         confirmResetAllState = true
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+
+                    Button("Reset Tutorial") {
+                        viewModel.resetTutorial()
+                        onResetTutorial?()
                     }
                     .buttonStyle(EntuleSecondaryButtonStyle())
                 }

@@ -61,4 +61,9 @@ final class SettingsViewModel: ObservableObject {
         let didReset = workspaceViewModel.resetAllLocalState()
         feedbackMessage = didReset ? "Reset Entule on this Mac" : "Could not reset Entule data"
     }
+
+    func resetTutorial() {
+        TutorialManager.resetPersistentFlag()
+        feedbackMessage = "Tutorial reset. Returning to Home to replay."
+    }
 }

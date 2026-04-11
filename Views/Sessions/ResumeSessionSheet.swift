@@ -94,6 +94,7 @@ struct ResumeSessionSheet: View {
         }
         .overlay(alignment: .topTrailing) {
             resumeOrb
+                .tutorialAnchor(.resume)
         }
         .frame(maxHeight: .infinity, alignment: .topLeading)
         .entulePanel()
