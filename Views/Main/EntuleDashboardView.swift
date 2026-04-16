@@ -293,12 +293,7 @@ struct EntuleDashboardView: View {
             case .presets:
                 PresetManagementView(workspaceViewModel: workspaceViewModel)
             case .settings:
-                SettingsView(
-                    workspaceViewModel: workspaceViewModel,
-                    onResetTutorial: {
-                        appShellViewModel.showHome()
-                    }
-                )
+                SettingsView(workspaceViewModel: workspaceViewModel)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

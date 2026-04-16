@@ -8,7 +8,7 @@ Because Entule is an independent, open-source tool, macOS requires a quick worka
 Downloading via Terminal completely bypasses Apple's quarantine warning. Open Terminal and paste this:
 
 ```bash
-curl -fL --retry 3 -o ~/Downloads/Entule.dmg [https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg) && open ~/Downloads/Entule.dmg
+curl -fL --retry 3 -o ~/Downloads/Entule.dmg https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg && open ~/Downloads/Entule.dmg
 ```
 
 Drag `Entule.app` to your Applications folder, and it will open normally.

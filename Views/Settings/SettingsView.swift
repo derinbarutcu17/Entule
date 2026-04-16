@@ -5,11 +5,9 @@ struct SettingsView: View {
 
     @State private var confirmClearSnapshot = false
     @State private var confirmResetAllState = false
-    let onResetTutorial: (() -> Void)?
 
-    init(workspaceViewModel: WorkspaceViewModel, onResetTutorial: (() -> Void)? = nil) {
+    init(workspaceViewModel: WorkspaceViewModel) {
         _viewModel = StateObject(wrappedValue: SettingsViewModel(workspaceViewModel: workspaceViewModel))
-        self.onResetTutorial = onResetTutorial
     }
 
     var body: some View {
@@ -160,7 +158,6 @@ struct SettingsView: View {
 
                     Button("Reset Tutorial") {
                         viewModel.resetTutorial()
-                        onResetTutorial?()
                     }
                     .buttonStyle(EntuleSecondaryButtonStyle())
 
@@ -180,7 +177,6 @@ struct SettingsView: View {
 
                     Button("Reset Tutorial") {
                         viewModel.resetTutorial()
-                        onResetTutorial?()
                     }
                     .buttonStyle(EntuleSecondaryButtonStyle())
                 }
