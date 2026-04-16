@@ -3,7 +3,6 @@
 ## Download Latest Release
 
 - [Download Entule.app.zip](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.app.zip)
-- [Download Entule.dmg](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg)
 
 ## Installation
 
@@ -17,9 +16,8 @@ curl -fL --retry 3 -o ~/Downloads/Entule.app.zip https://github.com/derinbarutcu
 ```
 
 **Option 2: The Manual Download**
-1. Download [Entule.app.zip](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.app.zip) (or [Entule.dmg](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.dmg)).
-2. If you downloaded ZIP, extract it and move `Entule.app` into your Applications folder.
-3. If you downloaded DMG, open it and drag `Entule.app` into Applications.
+1. Download [Entule.app.zip](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.app.zip).
+2. Extract it and move `Entule.app` into your Applications folder.
 3. **Right-click** (or Control-click) `Entule.app` and select **Open**. Confirm the prompt. *(You only have to do this once).*
 
 <details>
@@ -41,7 +39,7 @@ What it does:
 - Stores data locally on your Mac
 
 How to use:
-1. Install Entule by opening the DMG and dragging Entule to Applications.
+1. Install Entule by downloading the ZIP release, extracting it, and moving Entule to Applications.
 2. Open Entule and go to `Save` to capture your current session.
 3. Use `Inspect` to review saved items.
 4. Click `Resume` to reopen saved items.
