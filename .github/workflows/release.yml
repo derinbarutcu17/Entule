@@ -16,11 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build DMG
-        run: make release
+      - name: Build DMG and ZIP
+        run: |
+          make release
+          make release-zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/Entule.dmg
+          files: |
+            dist/Entule.dmg
+            dist/Entule.app.zip
           generate_release_notes: true

@@ -1,9 +1,10 @@
-.PHONY: build release install run clean
+.PHONY: build release release-zip install run clean
 
 APP_NAME = Entule
 DIST_DIR = dist
 APP_BUNDLE = $(DIST_DIR)/$(APP_NAME).app
 DMG_PATH = $(DIST_DIR)/$(APP_NAME).dmg
+ZIP_PATH = $(DIST_DIR)/$(APP_NAME).app.zip
 
 build:
 	@echo "Building $(APP_NAME)..."
@@ -47,6 +48,13 @@ release:
 	@rm -rf $(DIST_DIR)/dmg-stage
 	@rm -f $(DIST_DIR)/$(APP_NAME)-temp.dmg
 	@echo "DMG created at $(DMG_PATH)"
+
+release-zip:
+	@echo "Creating ZIP..."
+	@$(MAKE) build
+	@rm -f $(ZIP_PATH)
+	@ditto -c -k --sequesterRsrc --keepParent $(APP_BUNDLE) $(ZIP_PATH)
+	@echo "ZIP created at $(ZIP_PATH)"
 
 clean:
 	@rm -rf .build
