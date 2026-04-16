@@ -2,9 +2,11 @@
 
 APP_NAME = Entule
 DIST_DIR = dist
+RELEASE_ASSETS_DIR = release-assets
 APP_BUNDLE = $(DIST_DIR)/$(APP_NAME).app
 DMG_PATH = $(DIST_DIR)/$(APP_NAME).dmg
 ZIP_PATH = $(DIST_DIR)/$(APP_NAME).app.zip
+ZIP_STAGE_DIR = $(DIST_DIR)/Entule
 
 build:
 	@echo "Building $(APP_NAME)..."
@@ -52,8 +54,15 @@ release:
 release-zip:
 	@echo "Creating ZIP..."
 	@$(MAKE) build
+	@rm -rf $(ZIP_STAGE_DIR)
+	@mkdir -p $(ZIP_STAGE_DIR)
+	@cp -R $(APP_BUNDLE) $(ZIP_STAGE_DIR)/$(APP_NAME).app
+	@cp $(RELEASE_ASSETS_DIR)/README.txt $(ZIP_STAGE_DIR)/README.txt
+	@cp $(RELEASE_ASSETS_DIR)/Open\ Entule.command $(ZIP_STAGE_DIR)/Open\ Entule.command
+	@chmod +x $(ZIP_STAGE_DIR)/Open\ Entule.command
 	@rm -f $(ZIP_PATH)
-	@ditto -c -k --sequesterRsrc --keepParent $(APP_BUNDLE) $(ZIP_PATH)
+	@ditto -c -k --sequesterRsrc --keepParent $(ZIP_STAGE_DIR) $(ZIP_PATH)
+	@rm -rf $(ZIP_STAGE_DIR)
 	@echo "ZIP created at $(ZIP_PATH)"
 
 clean:
