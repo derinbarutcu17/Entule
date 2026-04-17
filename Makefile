@@ -58,8 +58,6 @@ release-zip:
 	@mkdir -p $(ZIP_STAGE_DIR)
 	@cp -R $(APP_BUNDLE) $(ZIP_STAGE_DIR)/$(APP_NAME).app
 	@cp $(RELEASE_ASSETS_DIR)/README.txt $(ZIP_STAGE_DIR)/README.txt
-	@cp $(RELEASE_ASSETS_DIR)/Open\ Entule.command $(ZIP_STAGE_DIR)/Open\ Entule.command
-	@chmod +x $(ZIP_STAGE_DIR)/Open\ Entule.command
 	@rm -f $(ZIP_PATH)
 	@ditto -c -k --sequesterRsrc --keepParent $(ZIP_STAGE_DIR) $(ZIP_PATH)
 	@rm -rf $(ZIP_STAGE_DIR)
