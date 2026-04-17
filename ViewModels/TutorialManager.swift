@@ -10,6 +10,24 @@ enum TutorialTarget: Hashable {
     case resume
     case presets
     case settings
+
+    var spotlightYOffset: CGFloat {
+        switch self {
+        case .save, .inspect, .presets, .settings:
+            return 10
+        case .resume:
+            return 8
+        }
+    }
+
+    var spotlightPadding: CGFloat {
+        switch self {
+        case .save, .inspect, .presets, .settings:
+            return 8
+        case .resume:
+            return 10
+        }
+    }
 }
 
 enum TutorialStep: Int, CaseIterable {

@@ -46,7 +46,6 @@ struct HelpButtonView: View {
 struct TutorialOverlayView: View {
     @ObservedObject var manager: TutorialManager
     let anchors: [TutorialTarget: Anchor<CGRect>]
-    private let highlightPadding: CGFloat = 12
     private let tooltipMaxWidth: CGFloat = 420
     private let tooltipMinWidth: CGFloat = 320
 
@@ -54,9 +53,7 @@ struct TutorialOverlayView: View {
         GeometryReader { proxy in
             if manager.isActive {
                 let step = manager.currentStep
-                let targetRect = step.target.flatMap { target in
-                    anchors[target].map { proxy[$0] }
-                }
+                let targetRect = focusedRect(for: step, in: proxy)
                 let layout = tooltipLayout(in: proxy.size, targetRect: targetRect, for: step)
 
                 ZStack(alignment: .topLeading) {
@@ -90,10 +87,10 @@ struct TutorialOverlayView: View {
         Color.black.opacity(0.58)
             .overlay {
                 if let targetRect {
-                    RoundedRectangle(cornerRadius: max(12, min(targetRect.height, targetRect.width) * 0.2), style: .continuous)
+                    RoundedRectangle(cornerRadius: max(10, min(targetRect.height, targetRect.width) * 0.18), style: .continuous)
                         .frame(
-                            width: targetRect.width + highlightPadding * 2,
-                            height: targetRect.height + highlightPadding * 2
+                            width: targetRect.width + 16,
+                            height: targetRect.height + 16
                         )
                         .position(x: targetRect.midX, y: targetRect.midY)
                         .blendMode(.destinationOut)
@@ -146,6 +143,13 @@ struct TutorialOverlayView: View {
                 .frame(width: targetRect.width, height: targetRect.height)
                 .position(x: targetRect.midX, y: targetRect.midY)
         }
+    }
+
+    private func focusedRect(for step: TutorialStep, in proxy: GeometryProxy) -> CGRect? {
+        guard let target = step.target, let anchor = anchors[target] else { return nil }
+        var rect = proxy[anchor]
+        rect.origin.y += target.spotlightYOffset
+        return rect
     }
 
     private func tutorialArrow(from start: CGPoint, to end: CGPoint) -> Path {
