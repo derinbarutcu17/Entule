@@ -46,6 +46,9 @@ struct HelpButtonView: View {
 struct TutorialOverlayView: View {
     @ObservedObject var manager: TutorialManager
     let anchors: [TutorialTarget: Anchor<CGRect>]
+    private let highlightPadding: CGFloat = 12
+    private let tooltipMaxWidth: CGFloat = 420
+    private let tooltipMinWidth: CGFloat = 320
 
     var body: some View {
         GeometryReader { proxy in
@@ -69,6 +72,8 @@ struct TutorialOverlayView: View {
                     tooltipCard(step: step)
                         .frame(width: layout.tooltipWidth)
                         .position(layout.tooltipCenter)
+
+                    debugAnchorOverlay(targetRect)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .transition(.opacity)
@@ -85,10 +90,10 @@ struct TutorialOverlayView: View {
         Color.black.opacity(0.58)
             .overlay {
                 if let targetRect {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: max(12, min(targetRect.height, targetRect.width) * 0.2), style: .continuous)
                         .frame(
-                            width: targetRect.width + 48,
-                            height: targetRect.height + 48
+                            width: targetRect.width + highlightPadding * 2,
+                            height: targetRect.height + highlightPadding * 2
                         )
                         .position(x: targetRect.midX, y: targetRect.midY)
                         .blendMode(.destinationOut)
@@ -133,6 +138,16 @@ struct TutorialOverlayView: View {
         .shadow(color: Color.black.opacity(0.22), radius: 24, y: 14)
     }
 
+    @ViewBuilder
+    private func debugAnchorOverlay(_ targetRect: CGRect?) -> some View {
+        if ProcessInfo.processInfo.environment["ENTULE_TUTORIAL_DEBUG"] == "1", let targetRect {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(.cyan, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                .frame(width: targetRect.width, height: targetRect.height)
+                .position(x: targetRect.midX, y: targetRect.midY)
+        }
+    }
+
     private func tutorialArrow(from start: CGPoint, to end: CGPoint) -> Path {
         var path = Path()
         path.move(to: start)
@@ -158,8 +173,12 @@ struct TutorialOverlayView: View {
         return path
     }
 
+    private enum TooltipPlacement {
+        case above, below, leading, trailing, centered
+    }
+
     private func tooltipLayout(in size: CGSize, targetRect: CGRect?, for step: TutorialStep) -> (tooltipCenter: CGPoint, arrowStart: CGPoint, tooltipWidth: CGFloat) {
-        let tooltipWidth = min(max(size.width * 0.36, 320), 420)
+        let tooltipWidth = min(max(size.width * 0.34, tooltipMinWidth), tooltipMaxWidth)
         let tooltipHeight: CGFloat = step == .welcome ? 176 : 164
 
         guard let targetRect, step.target != nil else {
@@ -167,19 +186,42 @@ struct TutorialOverlayView: View {
             return (center, center, tooltipWidth)
         }
 
-        let preferBelow = targetRect.midY < (size.height * 0.5)
-        let breathingRoom: CGFloat = max(targetRect.height * 1.35, 96)
-        let idealY = preferBelow
-            ? targetRect.maxY + breathingRoom + (tooltipHeight / 2)
-            : targetRect.minY - breathingRoom - (tooltipHeight / 2)
-        let clampedY = min(max(idealY, (tooltipHeight / 2) + 24), size.height - (tooltipHeight / 2) - 24)
-        let clampedX = min(max(targetRect.midX, (tooltipWidth / 2) + 28), size.width - (tooltipWidth / 2) - 28)
+        let margin: CGFloat = 24
+        let gap: CGFloat = max(16, targetRect.height * 0.8)
 
-        let center = CGPoint(x: clampedX, y: clampedY)
-        let arrowStart = preferBelow
-            ? CGPoint(x: center.x, y: center.y - (tooltipHeight / 2) - 12)
-            : CGPoint(x: center.x, y: center.y + (tooltipHeight / 2) + 12)
+        let spaceAbove = targetRect.minY - margin
+        let spaceBelow = size.height - targetRect.maxY - margin
+        let spaceLeading = targetRect.minX - margin
+        let spaceTrailing = size.width - targetRect.maxX - margin
 
-        return (center, arrowStart, tooltipWidth)
+        let placement: TooltipPlacement = {
+            if spaceBelow >= tooltipHeight + gap { return .below }
+            if spaceAbove >= tooltipHeight + gap { return .above }
+            if spaceTrailing >= tooltipWidth + gap { return .trailing }
+            if spaceLeading >= tooltipWidth + gap { return .leading }
+            return .centered
+        }()
+
+        switch placement {
+        case .below:
+            let x = min(max(targetRect.midX, (tooltipWidth / 2) + margin), size.width - (tooltipWidth / 2) - margin)
+            let y = min(size.height - (tooltipHeight / 2) - margin, targetRect.maxY + gap + (tooltipHeight / 2))
+            return (CGPoint(x: x, y: y), CGPoint(x: x, y: y - (tooltipHeight / 2) - 12), tooltipWidth)
+        case .above:
+            let x = min(max(targetRect.midX, (tooltipWidth / 2) + margin), size.width - (tooltipWidth / 2) - margin)
+            let y = max((tooltipHeight / 2) + margin, targetRect.minY - gap - (tooltipHeight / 2))
+            return (CGPoint(x: x, y: y), CGPoint(x: x, y: y + (tooltipHeight / 2) + 12), tooltipWidth)
+        case .trailing:
+            let x = min(size.width - (tooltipWidth / 2) - margin, targetRect.maxX + gap + (tooltipWidth / 2))
+            let y = min(max(targetRect.midY, (tooltipHeight / 2) + margin), size.height - (tooltipHeight / 2) - margin)
+            return (CGPoint(x: x, y: y), CGPoint(x: x - (tooltipWidth / 2) - 12, y: y), tooltipWidth)
+        case .leading:
+            let x = max((tooltipWidth / 2) + margin, targetRect.minX - gap - (tooltipWidth / 2))
+            let y = min(max(targetRect.midY, (tooltipHeight / 2) + margin), size.height - (tooltipHeight / 2) - margin)
+            return (CGPoint(x: x, y: y), CGPoint(x: x + (tooltipWidth / 2) + 12, y: y), tooltipWidth)
+        case .centered:
+            let center = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
+            return (center, center, tooltipWidth)
+        }
     }
 }

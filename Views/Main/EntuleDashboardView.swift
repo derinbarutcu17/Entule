@@ -10,13 +10,14 @@ struct EntuleDashboardView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let compactNav = proxy.size.width < 760
             let contentSize = CGSize(
                 width: max(proxy.size.width - (AppWindowMetrics.outerPadding * 2), 0),
                 height: max(proxy.size.height - AppWindowMetrics.titlebarTopInset - AppWindowMetrics.outerPadding, 0)
             )
 
             VStack(alignment: .leading, spacing: AppWindowMetrics.shellHeaderBottomSpacing) {
-                homeTopShell
+                homeTopShell(compact: compactNav)
                     .frame(maxWidth: .infinity, alignment: .center)
 
                 shellContent(for: contentSize)
@@ -92,7 +93,8 @@ struct EntuleDashboardView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var homeTopShell: some View {
+    @ViewBuilder
+    private func homeTopShell(compact: Bool) -> some View {
         HStack(spacing: AppWindowMetrics.spacingM) {
             Text("Entule")
                 .font(EntuleTypography.font(26, weight: .bold))
@@ -100,33 +102,18 @@ struct EntuleDashboardView: View {
 
             Spacer(minLength: 0)
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: AppWindowMetrics.spacingS) {
-                    topNavigationButton(title: "Home", section: .home)
-                    topNavigationButton(title: "Save", section: .saveSession)
-                        .tutorialAnchor(.save)
-                    topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
-                        .tutorialAnchor(.inspect)
-                    topNavigationButton(title: "Presets", section: .presets)
-                        .tutorialAnchor(.presets)
-                    topNavigationButton(title: "Settings", section: .settings)
-                        .tutorialAnchor(.settings)
-                }
-
+            if compact {
                 VStack(alignment: .trailing, spacing: AppWindowMetrics.spacingS) {
-                    HStack(spacing: AppWindowMetrics.spacingS) {
-                        topNavigationButton(title: "Home", section: .home)
-                        topNavigationButton(title: "Save", section: .saveSession)
-                            .tutorialAnchor(.save)
-                        topNavigationButton(title: "Inspect", section: .inspectCheckpoint)
-                            .tutorialAnchor(.inspect)
-                    }
-                    HStack(spacing: AppWindowMetrics.spacingS) {
-                        topNavigationButton(title: "Presets", section: .presets)
-                            .tutorialAnchor(.presets)
-                        topNavigationButton(title: "Settings", section: .settings)
-                            .tutorialAnchor(.settings)
-                    }
+                    navButtonRow([.home, .saveSession, .inspectCheckpoint])
+                    navButtonRow([.presets, .settings])
+                }
+            } else {
+                HStack(spacing: AppWindowMetrics.spacingS) {
+                    navButton(.home)
+                    navButton(.saveSession)
+                    navButton(.inspectCheckpoint)
+                    navButton(.presets)
+                    navButton(.settings)
                 }
             }
         }
@@ -140,6 +127,45 @@ struct EntuleDashboardView: View {
         .clipShape(Capsule())
         .shadow(color: Color.black.opacity(0.04), radius: 18, y: 12)
         .frame(maxWidth: 980)
+    }
+
+    @ViewBuilder
+    private func navButtonRow(_ sections: [AppSection]) -> some View {
+        HStack(spacing: AppWindowMetrics.spacingS) {
+            ForEach(sections, id: \.self) { section in
+                navButton(section)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func navButton(_ section: AppSection) -> some View {
+        if let target = tutorialTarget(for: section) {
+            topNavigationButton(title: navLabel(for: section), section: section)
+                .tutorialAnchor(target)
+        } else {
+            topNavigationButton(title: navLabel(for: section), section: section)
+        }
+    }
+
+    private func tutorialTarget(for section: AppSection) -> TutorialTarget? {
+        switch section {
+        case .saveSession: return .save
+        case .inspectCheckpoint: return .inspect
+        case .presets: return .presets
+        case .settings: return .settings
+        default: return nil
+        }
+    }
+
+    private func navLabel(for section: AppSection) -> String {
+        switch section {
+        case .home: return "Home"
+        case .saveSession: return "Save"
+        case .inspectCheckpoint: return "Inspect"
+        case .presets: return "Presets"
+        case .settings: return "Settings"
+        }
     }
 
     private func heroComposition(saveSize: CGFloat, resumeSize: CGFloat, spacing: CGFloat) -> some View {
