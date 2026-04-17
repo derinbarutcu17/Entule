@@ -573,7 +573,9 @@ private struct HomeHeroOrb: View {
                 .font(.system(size: iconSize, weight: .medium))
                 .foregroundStyle(iconColor)
         case .assetPNG(let name):
-            if let url = Bundle.main.url(forResource: name, withExtension: "png"),
+            if name == "one-point-circle" {
+                OnePointCircleLogo(size: iconSize, tint: iconColor)
+            } else if let url = Bundle.main.url(forResource: name, withExtension: "png"),
                let image = NSImage(contentsOf: url) {
                 Image(nsImage: image)
                     .resizable()
@@ -587,6 +589,31 @@ private struct HomeHeroOrb: View {
                     .foregroundStyle(iconColor)
             }
         }
+    }
+}
+
+private struct OnePointCircleLogo: View {
+    let size: CGFloat
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(tint, lineWidth: max(1.8, size * 0.085))
+                .frame(width: size * 0.92, height: size * 0.92)
+
+            Circle()
+                .fill(tint)
+                .frame(width: max(4.5, size * 0.18), height: max(4.5, size * 0.18))
+
+            Circle()
+                .stroke(tint.opacity(0.65), lineWidth: max(1, size * 0.045))
+                .frame(width: size * 0.48, height: size * 0.48)
+                .offset(x: size * 0.13, y: -size * 0.12)
+                .rotationEffect(.degrees(-22))
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 
     private var shadowColor: Color {
