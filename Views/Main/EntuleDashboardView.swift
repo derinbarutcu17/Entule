@@ -277,7 +277,23 @@ struct EntuleDashboardView: View {
     }
 
     private func syncTutorialSection(for step: TutorialStep) {
-        guard tutorialManager.isActive, let section = step.preferredSection else { return }
+        guard tutorialManager.isActive else { return }
+
+        let section: AppSection?
+        switch step {
+        case .welcome:
+            section = .home
+        case .save:
+            section = .saveSession
+        case .inspect, .resume:
+            section = .inspectCheckpoint
+        case .presets:
+            section = .presets
+        case .settingsDone:
+            section = .settings
+        }
+
+        guard let section else { return }
 
         DispatchQueue.main.async {
             appShellViewModel.navigate(to: section)
@@ -565,6 +581,24 @@ private struct HomeHeroOrb: View {
         return 26
     }
 
+    private var shadowColor: Color {
+        switch style {
+        case .primary:
+            return EntuleTheme.orange.opacity(disabled ? 0.08 : (isHovered ? 0.22 : 0.16))
+        case .secondary:
+            return Color.black.opacity(isHovered ? 0.08 : 0.05)
+        }
+    }
+
+    private var logoScale: CGFloat {
+        switch icon {
+        case .assetPNG("one-point-circle"):
+            return 1.35
+        default:
+            return 1.0
+        }
+    }
+
     @ViewBuilder
     private var iconView: some View {
         switch icon {
@@ -574,7 +608,7 @@ private struct HomeHeroOrb: View {
                 .foregroundStyle(iconColor)
         case .assetPNG(let name):
             if name == "one-point-circle" {
-                OnePointCircleLogo(size: iconSize, tint: iconColor)
+                OnePointCircleLogo(size: iconSize * logoScale, tint: iconColor)
             } else if let url = Bundle.main.url(forResource: name, withExtension: "png"),
                let image = NSImage(contentsOf: url) {
                 Image(nsImage: image)
@@ -597,31 +631,35 @@ private struct OnePointCircleLogo: View {
     let tint: Color
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(tint, lineWidth: max(1.8, size * 0.085))
-                .frame(width: size * 0.92, height: size * 0.92)
+        Canvas { context, canvasSize in
+            let viewBox: CGFloat = 24
+            let scale = min(canvasSize.width, canvasSize.height) / viewBox
+            let strokeWidth = max(0.95, 1.05 * scale)
+            let drawSize = viewBox * scale
+            let originX = (canvasSize.width - drawSize) / 2
+            let originY = (canvasSize.height - drawSize) / 2
 
-            Circle()
-                .fill(tint)
-                .frame(width: max(4.5, size * 0.18), height: max(4.5, size * 0.18))
+            context.translateBy(x: originX, y: originY)
+            context.scaleBy(x: scale, y: scale)
 
-            Circle()
-                .stroke(tint.opacity(0.65), lineWidth: max(1, size * 0.045))
-                .frame(width: size * 0.48, height: size * 0.48)
-                .offset(x: size * 0.13, y: -size * 0.12)
-                .rotationEffect(.degrees(-22))
+            let outer = Path(ellipseIn: CGRect(x: 2, y: 2, width: 20, height: 20))
+            context.stroke(outer, with: .color(tint), lineWidth: strokeWidth)
+
+            let centerDot = Path(ellipseIn: CGRect(x: 11, y: 11, width: 2, height: 2))
+            context.fill(centerDot, with: .color(tint))
+            context.stroke(centerDot, with: .color(tint), lineWidth: strokeWidth)
+
+            var line1 = Path()
+            line1.move(to: CGPoint(x: 15.5, y: 15.5))
+            line1.addLine(to: CGPoint(x: 17.5, y: 17.5))
+            context.stroke(line1, with: .color(tint), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round, lineJoin: .round))
+
+            var line2 = Path()
+            line2.move(to: CGPoint(x: 19, y: 19))
+            line2.addLine(to: CGPoint(x: 17.5, y: 17.5))
+            context.stroke(line2, with: .color(tint), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
-    }
-
-    private var shadowColor: Color {
-        switch style {
-        case .primary:
-            return EntuleTheme.orange.opacity(disabled ? 0.08 : (isHovered ? 0.22 : 0.16))
-        case .secondary:
-            return Color.black.opacity(isHovered ? 0.08 : 0.05)
-        }
     }
 }

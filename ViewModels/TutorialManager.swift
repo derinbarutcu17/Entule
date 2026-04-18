@@ -13,19 +13,23 @@ enum TutorialTarget: Hashable {
 
     var spotlightYOffset: CGFloat {
         switch self {
-        case .save, .inspect, .presets, .settings:
-            return 10
+        case .save:
+            return 38
+        case .inspect, .presets, .settings:
+            return 26
         case .resume:
-            return 8
+            return 20
         }
     }
 
     var spotlightPadding: CGFloat {
         switch self {
-        case .save, .inspect, .presets, .settings:
-            return 8
+        case .save:
+            return 4
+        case .inspect, .presets, .settings:
+            return 4
         case .resume:
-            return 10
+            return 6
         }
     }
 }
@@ -82,23 +86,6 @@ enum TutorialStep: Int, CaseIterable {
             return .inspect
         case .resume:
             return .resume
-        case .presets:
-            return .presets
-        case .settingsDone:
-            return .settings
-        }
-    }
-
-    var preferredSection: AppSection? {
-        switch self {
-        case .welcome:
-            return .home
-        case .save:
-            return .saveSession
-        case .inspect:
-            return .inspectCheckpoint
-        case .resume:
-            return .inspectCheckpoint
         case .presets:
             return .presets
         case .settingsDone:

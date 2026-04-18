@@ -18,6 +18,7 @@ build:
 	cp $$BIN_PATH/$(APP_NAME) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME); \
 	if [ -d Resources ]; then cp -R Resources/. $(APP_BUNDLE)/Contents/Resources/; fi; \
 	if [ -f Resources/AppIcon.icns ]; then cp Resources/AppIcon.icns $(APP_BUNDLE)/Contents/Resources/AppIcon.icns; fi; \
+	find $(APP_BUNDLE)/Contents/Resources -name '*.bak-*' -delete; \
 	chmod +x $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME); \
 	printf 'APPL????' > $(APP_BUNDLE)/Contents/PkgInfo; \
 	codesign --force --deep --sign - $(APP_BUNDLE)

@@ -83,7 +83,7 @@ struct SettingsView: View {
                 .foregroundStyle(EntuleTheme.inkDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ViewThatFits(in: .horizontal) {
+            responsiveActionButtons {
                 HStack(spacing: AppWindowMetrics.spacingS) {
                     Button("Request Browser Access") {
                         viewModel.requestBrowserAutomationAccess()
@@ -95,7 +95,7 @@ struct SettingsView: View {
                     }
                     .buttonStyle(EntuleSecondaryButtonStyle())
                 }
-
+            } vertical: {
                 VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
                     Button("Request Browser Access") {
                         viewModel.requestBrowserAutomationAccess()
@@ -144,7 +144,7 @@ struct SettingsView: View {
                 .foregroundStyle(EntuleTheme.inkDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ViewThatFits(in: .horizontal) {
+            responsiveActionButtons {
                 HStack(spacing: AppWindowMetrics.spacingS) {
                     Button("Clear Last Saved Session") {
                         confirmClearSnapshot = true
@@ -163,7 +163,7 @@ struct SettingsView: View {
 
                     Spacer(minLength: 0)
                 }
-
+            } vertical: {
                 VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
                     Button("Clear Last Saved Session") {
                         confirmClearSnapshot = true
@@ -184,5 +184,15 @@ struct SettingsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .entulePanel()
+    }
+
+    private func responsiveActionButtons<Horizontal: View, Vertical: View>(
+        @ViewBuilder horizontal: () -> Horizontal,
+        @ViewBuilder vertical: () -> Vertical
+    ) -> some View {
+        ViewThatFits(in: .horizontal) {
+            horizontal()
+            vertical()
+        }
     }
 }

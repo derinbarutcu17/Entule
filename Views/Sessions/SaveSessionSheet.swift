@@ -38,7 +38,7 @@ struct SaveSessionSheet: View {
 
     private var sessionItemsPanel: some View {
         VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
-            Text(summaryLine)
+            Text("\(viewModel.selectedCount) selected of \(viewModel.detectedCount) items")
                 .font(EntuleTypography.font(13, weight: .medium))
                 .foregroundStyle(EntuleTheme.inkDim)
 
@@ -62,6 +62,11 @@ struct SaveSessionSheet: View {
                         .font(EntuleTypography.font(12))
                         .foregroundStyle(EntuleTheme.inkDim)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    let browserDetectorStatusLines = viewModel.detectorStatusLines.filter { line in
+                        let lower = line.lowercased()
+                        return lower.contains("dia:") || lower.contains("chrome:") || lower.contains("safari:")
+                    }
 
                     if !browserDetectorStatusLines.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
@@ -131,7 +136,7 @@ struct SaveSessionSheet: View {
                 .foregroundStyle(EntuleTheme.inkDim)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ViewThatFits(in: .horizontal) {
+            responsiveActionButtons {
                 HStack(spacing: AppWindowMetrics.spacingS) {
                     Button("Select All") { viewModel.selectAll() }
                         .buttonStyle(EntuleSecondaryButtonStyle())
@@ -147,7 +152,7 @@ struct SaveSessionSheet: View {
                             .padding(.leading, 4)
                     }
                 }
-
+            } vertical: {
                 VStack(alignment: .leading, spacing: AppWindowMetrics.spacingXS) {
                     Button("Select All") { viewModel.selectAll() }
                         .buttonStyle(EntuleSecondaryButtonStyle())
@@ -176,7 +181,11 @@ struct SaveSessionSheet: View {
 
     private var saveCheckpointOrb: some View {
         Button {
-            saveSnapshotWithChecks()
+            if viewModel.shouldConfirmEmptySelection() {
+                confirmSaveWithZeroItems = true
+            } else {
+                persistAndClose()
+            }
         } label: {
             Circle()
                 .fill(EntuleTheme.primaryButtonGradient)
@@ -200,6 +209,16 @@ struct SaveSessionSheet: View {
     private func manualAddButton(title: String, action: @escaping () -> Void) -> some View {
         Button(title, action: action)
             .buttonStyle(EntuleSecondaryButtonStyle())
+    }
+
+    private func responsiveActionButtons<Horizontal: View, Vertical: View>(
+        @ViewBuilder horizontal: () -> Horizontal,
+        @ViewBuilder vertical: () -> Vertical
+    ) -> some View {
+        ViewThatFits(in: .horizontal) {
+            horizontal()
+            vertical()
+        }
     }
 
     private var addManuallyButton: some View {
@@ -253,18 +272,17 @@ struct SaveSessionSheet: View {
         .shadow(color: Color.black.opacity(0.08), radius: 18, y: 12)
     }
 
-    private var summaryLine: String {
-        "\(viewModel.selectedCount) selected of \(viewModel.detectedCount) items"
-    }
-
-    private var appCardColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 132), spacing: AppWindowMetrics.spacingS, alignment: .top)]
-    }
-
     private func sectionBlock(kind: SessionItemKind, items: [SessionItem]) -> some View {
         VStack(alignment: .leading, spacing: AppWindowMetrics.spacingS) {
             HStack(spacing: AppWindowMetrics.spacingS) {
-                Text(kindSectionTitle(kind))
+                Text({
+                    switch kind {
+                    case .app: "Apps"
+                    case .file: "Files"
+                    case .folder: "Folders"
+                    case .url: "Links"
+                    }
+                }())
                     .font(EntuleTypography.font(18, weight: .semibold))
                     .foregroundStyle(EntuleTheme.ink)
 
@@ -276,11 +294,23 @@ struct SaveSessionSheet: View {
                     .background(Color.white.opacity(0.85))
                     .clipShape(Capsule())
 
+                if kind == .app {
+                    Button("Deselect Apps") {
+                        viewModel.deselectAll(of: .app)
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+                } else if kind == .url {
+                    Button("Deselect Links") {
+                        viewModel.deselectAll(of: .url)
+                    }
+                    .buttonStyle(EntuleSecondaryButtonStyle())
+                }
+
                 Spacer(minLength: 0)
             }
 
             if kind == .app {
-                LazyVGrid(columns: appCardColumns, alignment: .leading, spacing: AppWindowMetrics.spacingS) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: AppWindowMetrics.spacingS, alignment: .top)], alignment: .leading, spacing: AppWindowMetrics.spacingS) {
                     ForEach(items) { item in
                         appCard(for: item)
                     }
@@ -401,41 +431,16 @@ struct SaveSessionSheet: View {
         }
     }
 
-    private func saveSnapshotWithChecks() {
-        if viewModel.shouldConfirmEmptySelection() {
-            confirmSaveWithZeroItems = true
-        } else {
-            persistAndClose()
-        }
-    }
-
     private func persistAndClose() {
         guard !isSaving else { return }
         isSaving = true
         workspaceViewModel.saveSnapshot(viewModel.toSnapshot())
-        closeView()
+        onClose?()
     }
 
     private func toggleSelection(for id: UUID) {
         guard let idx = viewModel.items.firstIndex(where: { $0.id == id }) else { return }
         viewModel.items[idx].isSelected.toggle()
-    }
-
-    private func kindSectionTitle(_ kind: SessionItemKind) -> String {
-        switch kind {
-        case .app:
-            return "Apps"
-        case .file:
-            return "Files"
-        case .folder:
-            return "Folders"
-        case .url:
-            return "Links"
-        }
-    }
-
-    private func closeView() {
-        onClose?()
     }
 
     private func collapseManualAdd() {
@@ -444,13 +449,6 @@ struct SaveSessionSheet: View {
             manualAddExpanded = false
         }
         manualURLFocused = false
-    }
-
-    private var browserDetectorStatusLines: [String] {
-        viewModel.detectorStatusLines.filter { line in
-            let lower = line.lowercased()
-            return lower.contains("dia:") || lower.contains("chrome:") || lower.contains("safari:")
-        }
     }
 
     private func detectSession() async {

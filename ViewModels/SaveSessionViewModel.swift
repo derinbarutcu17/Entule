@@ -31,10 +31,6 @@ final class SaveSessionViewModel: ObservableObject {
         items.count
     }
 
-    var detectedSourceCount: Int {
-        Set(items.map(\.source)).count
-    }
-
     var hasDetectedLinks: Bool {
         items.contains(where: { $0.kind == .url })
     }
@@ -53,6 +49,15 @@ final class SaveSessionViewModel: ObservableObject {
 
     func deselectAll() {
         items = items.map { item in
+            var copy = item
+            copy.isSelected = false
+            return copy
+        }
+    }
+
+    func deselectAll(of kind: SessionItemKind) {
+        items = items.map { item in
+            guard item.kind == kind else { return item }
             var copy = item
             copy.isSelected = false
             return copy
