@@ -1,5 +1,9 @@
 # Entule
 
+<p align="center">
+  <img src="docs/hero-banner.jpg" alt="Entule banner" width="1000">
+</p>
+
 ## Download Latest Release
 
 - [Download Entule.app.zip](https://github.com/derinbarutcu17/Entule/releases/latest/download/Entule.app.zip)
