@@ -52,3 +52,9 @@ How to use:
 4. Click `Resume` to reopen saved items.
 5. Use `Presets` to save reusable launch setups.
 6. Use `Settings` only when you need permissions or reset actions.
+
+## Home UI
+
+<p align="center">
+  <img src="docs/home-ui.png" alt="Entule Home UI" width="920">
+</p>
