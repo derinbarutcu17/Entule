@@ -1,8 +1,20 @@
 # Entule
 
-<p align="center">
-  <img src="docs/hero-banner.jpg" alt="Entule banner" width="1000">
-</p>
+Entule is a macOS app that saves your current work context as a session checkpoint and helps you reopen it later.
+
+## Visuals
+
+1. Home UI
+
+   <p align="center">
+     <img src="docs/home-ui.png" alt="Entule Home UI" width="920">
+   </p>
+
+2. Hero Banner
+
+   <p align="center">
+     <img src="docs/hero-banner.jpg" alt="Entule banner" width="1000">
+   </p>
 
 ## Download Latest Release
 
@@ -52,9 +64,3 @@ How to use:
 4. Click `Resume` to reopen saved items.
 5. Use `Presets` to save reusable launch setups.
 6. Use `Settings` only when you need permissions or reset actions.
-
-## Home UI
-
-<p align="center">
-  <img src="docs/home-ui.png" alt="Entule Home UI" width="920">
-</p>
